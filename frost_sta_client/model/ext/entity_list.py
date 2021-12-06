@@ -1,0 +1,118 @@
+import frost_sta_client
+import logging
+import requests
+
+
+class EntityList:
+    def __init__(self, entity_class, entities=None):
+        if entities is None:
+            entities = []
+        self.entities = entities
+        self.entity_class = entity_class
+        self.next_link = None
+        self.service = None
+        self.iterable_entities = None
+        self.count = None
+
+    def __new__(cls, *args, **kwargs):
+        new_entity_list = super().__new__(cls)
+        attributes = {'_entities': None, '_entity_class': '', '_next_link': '', '_service': {}, '_count': '',
+                      '_iterable_entities': None}
+        for key, value in attributes.items():
+            new_entity_list.__dict__[key] = value
+        return new_entity_list
+
+    def __iter__(self):
+        self.iterable_entities = iter(self.entities)
+        return self
+
+    def __next__(self):
+        next_entity = next(self.iterable_entities, None)
+        if next_entity is not None:
+            return next_entity
+        if self.next_link is not None:
+            try:
+                response = self.service.execute('get', self.next_link)
+            except requests.exceptions.HTTPError as e:
+                print("Error " + str(e))
+                return []
+            logging.info('Received response: {} from {}'.format(response.status_code, self.next_link))
+            try:
+                json_response = response.json()
+            except ValueError:
+                raise ValueError('Cannot find json in http response')
+
+            result_list = frost_sta_client.utils.transform_json_to_entity_list(json_response, self.entity_class)
+            self.entities += result_list.entities
+            self.next_link = json_response.get("@iot.nextLink", None)
+            self.iterable_entities = iter(self.entities[-len(result_list.entities):])
+            return next(self)
+        else:
+            raise StopIteration
+
+    def get(self, index):
+        if type(index) != int:
+            raise IndexError('index must be an integer')
+        if index > len(self.entities):
+            raise IndexError('index exceeds total number of entities')
+        return self.entities[index]
+
+    @property
+    def entity_class(self):
+        return self._entity_class
+
+    @entity_class.setter
+    def entity_class(self, value):
+        if type(value) == str:
+            self._entity_class = value
+            return
+        raise ValueError('entity_class should be of type str')
+
+    @property
+    def entities(self):
+        return self._entities
+
+    @entities.setter
+    def entities(self, values):
+        if type(values) == list and all(isinstance(v, frost_sta_client.model.entity.Entity) for v in values):
+            self._entities = values
+            return
+        raise ValueError('entities should be a list of entities')
+
+    @property
+    def next_link(self):
+        return self._next_link
+
+    @next_link.setter
+    def next_link(self, value):
+        if value is None or type(value) == str:
+            self._next_link = value
+            return
+        raise ValueError('next_link should be of type string')
+
+    @property
+    def service(self):
+        return self._service
+
+    @service.setter
+    def service(self, value):
+        if value is None or isinstance(value, frost_sta_client.service.sensorthingsservice.SensorThingsService):
+            self._service = value
+            return
+        raise ValueError('service should be of type SensorThingsService')
+
+    def set_service(self, service):
+        if self.service != service:
+            self.service = service
+            for entity in self.entities:
+                entity.set_service(service)
+
+    def __getstate__(self):
+        data = []
+        for entity in self.entities:
+            data.append(entity.__getstate__())
+        return data
+
+    def __setstate__(self, state):
+        self._next_link = state.get(self.entities + '@nextLink')
+        pass

@@ -1,0 +1,6 @@
+.idea
+dist
+**/__pycache__
+**.egg-info/
+
+pyproject.toml
