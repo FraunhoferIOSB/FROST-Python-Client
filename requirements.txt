@@ -1,0 +1,6 @@
+jsonpickle
+demjson3
+requests
+furl
+geojson
+jsonpatch
