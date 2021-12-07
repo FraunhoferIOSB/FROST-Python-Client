@@ -2,17 +2,17 @@
 
 The **FR**aunhofer **O**pensource **S**ensor**T**hings API Python Client is a python package for the [SensorThingsAPI](https://github.com/opengeospatial/sensorthings) and aims to simplify development of SensorThings enabled client applications
 
-##Features
+## Features
 * CRUD operations
 * Queries on entity lists
 * MultiDatastreams
 
-##API
+## API
 
 The `SensorThingsService` class is central to the library. An instance of it represents a SensorThings service and is identified by a URI
 
 
-###CRUD operations
+### CRUD operations
 The source code below demonstrates the CRUD operations for Thing objects. Operations for other entities work similarly
 ```
 import frost_client
@@ -20,7 +20,7 @@ import frost_client
 url = "exampleserver.com/FROST-Server/v1.1"
 service = SensorThingsService(url)
 ```
-####Creating Entities
+#### Creating Entities
 ```
 from geojson import Point
 
@@ -33,14 +33,14 @@ thing = Thing(name='new thing',
 thing.locations = [location]
 service.create(thing)
 ```
-####Querying Entities
+#### Querying Entities
 ```
 things_list = service.things().query().filter('id eq 1').list()
 
 for thing in things_list:
     print("my name is: {}".format(thing.name)
 ```
-###EntityLists
+### EntityLists
 
 When querying a list of entities that is particularly long, the FROST server cuts the list into smaller chunks,
 replaying to the request with the first chunk along with a link to the next one.
