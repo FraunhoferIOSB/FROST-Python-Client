@@ -15,30 +15,31 @@ The `SensorThingsService` class is central to the library. An instance of it rep
 ### CRUD operations
 The source code below demonstrates the CRUD operations for Thing objects. Operations for other entities work similarly
 ```
-import frost_client
+import frost_client as fsc
 
 url = "exampleserver.com/FROST-Server/v1.1"
-service = SensorThingsService(url)
+service = fsc.SensorThingsService(url)
 ```
 #### Creating Entities
 ```
 from geojson import Point
 
 point = Point((-115.81, 37.24))
-location = Location(name="here", description="and there", location=point)
+location = fsc.Location(name="here", description="and there", location=point)
  
-thing = Thing(name='new thing',
+thing = fsc.Thing(name='new thing',
               description='I am a thing with a location',
               properties={'withLocation': True, 'owner': 'IOSB'})
 thing.locations = [location]
 service.create(thing)
 ```
 #### Querying Entities
+Queries to the FROST Server can be modified to include filters, selections
 ```
 things_list = service.things().query().filter('id eq 1').list()
 
 for thing in things_list:
-    print("my name is: {}".format(thing.name)
+    print("my name is: {}".format(thing.name))
 ```
 ### EntityLists
 
@@ -51,7 +52,7 @@ through the entire list of entities, including the calls to all chunks.
 things_list = service.things().query().list()
 
 for thing in things_list:
-    print("my name is: {}".format(thing.name)
+    print("my name is: {}".format(thing.name))
 ```
 
 In a case, where only the current chunk is supposed to be iterated, the `entities` list can be used.
@@ -60,5 +61,5 @@ In a case, where only the current chunk is supposed to be iterated, the `entitie
 things_list = service.things().query().top(20).list()
 
 for thing in things_list.entities:
-    print("my name is: {}".format(thing.name)
+    print("my name is: {}".format(thing.name))
 ```

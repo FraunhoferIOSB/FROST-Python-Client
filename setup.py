@@ -17,6 +17,6 @@ setup(
     packages=['frost_sta_client', 'frost_sta_client/dao',
               'frost_sta_client/model', 'frost_sta_client/query', 'frost_sta_client/service',
               'frost_sta_client/model/ext'],
-    install_requires=['jsonpickle', 'demjson', 'requests', 'furl', 'geojson'],
+    install_requires=['jsonpickle', 'demjson3', 'requests', 'furl', 'geojson'],
     key_words=['sta', 'ogc', 'frost']
 )
