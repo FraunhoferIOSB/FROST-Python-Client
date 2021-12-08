@@ -28,7 +28,7 @@ class FeatureOfInterest(entity.Entity):
                  name='',
                  description='',
                  encoding_type='',
-                 feature='',
+                 feature=None,
                  properties=None,
                  observations=None):
         super().__init__()
