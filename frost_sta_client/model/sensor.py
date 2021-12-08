@@ -33,7 +33,7 @@ class Sensor(entity.Entity):
                  description='',
                  encoding_type='',
                  properties=None,
-                 metadata='',
+                 metadata=None,
                  datastreams=None,
                  multi_datastreams=None):
         super().__init__()
