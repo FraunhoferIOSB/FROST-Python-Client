@@ -123,8 +123,12 @@ class MultiDatastream(entity.Entity):
         if values is None:
             self._unit_of_measurements = None
             return
+        if type(values) == list and all(isinstance(uom, unitofmeasurement.UnitOfMeasurement) for uom in values):
+            entity_class = entity_type.EntityTypes['UnitOfMeasurement']['class']
+            self._unit_of_measurements = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
         if type(values) != entity_list.EntityList or \
-                any((not isinstance(uom, unitofmeasurement.UnitOfMeasurement)) for uom in values):
+                any((not isinstance(uom, unitofmeasurement.UnitOfMeasurement)) for uom in values.entities):
             raise ValueError('unit_of_measurements should be an entity_list of type UnitOfMeasurement')
         self._unit_of_measurements = values
 
@@ -206,8 +210,12 @@ class MultiDatastream(entity.Entity):
         if values is None:
             self._observed_properties = None
             return
+        if type(values) == list and all(isinstance(op, observedproperty.ObservedProperty) for op in values):
+            entity_class = entity_type.EntityTypes['ObservedProperty']['class']
+            self._observed_properties = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
         if type(values) != entity_list.EntityList or \
-                any(not isinstance(op, observedproperty.ObservedProperty) for op in values):
+                any(not isinstance(op, observedproperty.ObservedProperty) for op in values.entities):
             raise ValueError('observed_properties should be an entity list of ObservedProperty!')
         self._observed_properties = values
 
@@ -220,8 +228,12 @@ class MultiDatastream(entity.Entity):
         if values is None:
             self._observations = None
             return
+        if type(values) == list and all(isinstance(ob, observation.Observation) for ob in values):
+            entity_class = entity_type.EntityTypes['Observation']['class']
+            self._observations = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
         if type(values) != entity_list.EntityList or \
-                any(not isinstance(ob, observation.Observation) for ob in values):
+                any(not isinstance(ob, observation.Observation) for ob in values.entities):
             raise ValueError('Observations should be an entity list of Observations')
         self._observations = values
 

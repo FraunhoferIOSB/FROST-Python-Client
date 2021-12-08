@@ -92,8 +92,7 @@ class BaseDao:
         try:
             response = self.service.execute('post', url, json=json_dict)
         except requests.exceptions.HTTPError as e:
-            print("Error " + str(e))
-            return
+            raise e
         entity.id = int(frost_sta_client.utils.extract_value(response.headers['location']))
         entity.service = self.service
         logging.info('Received response: ' + str(response.status_code))

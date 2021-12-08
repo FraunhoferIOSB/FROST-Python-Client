@@ -222,6 +222,10 @@ class Datastream(entity.Entity):
         if values is None:
             self._observations = None
             return
+        if type(values) == list and all(isinstance(ob, observation.Observation) for ob in values):
+            entity_class = entity_type.EntityTypes['Observation']['class']
+            self._observations = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
         if type(values) == entity_list.EntityList and \
                 all(isinstance(ob, observation.Observation) for ob in values.entities):
             self._observations = values

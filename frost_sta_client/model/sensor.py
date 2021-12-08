@@ -109,7 +109,7 @@ class Sensor(entity.Entity):
             json.dumps(value)
         except TypeError:
             raise TypeError('metadata should be json serializable')
-        self._result = value
+        self._metadata = value
 
     @property
     def datastreams(self):
@@ -120,8 +120,12 @@ class Sensor(entity.Entity):
         if values is None:
             self._datastreams = None
             return
+        if type(values) == list and all(isinstance(ds, datastream.Datastream) for ds in values):
+            entity_class = entity_type.EntityTypes['Datastream']['class']
+            self._datastreams = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
         if type(values) != entity_list.EntityList or\
-                any((not isinstance(ds, datastream.Datastream)) for ds in values):
+                any((not isinstance(ds, datastream.Datastream)) for ds in values.entities):
             raise ValueError('datastreams should be an entity list of datastreams!')
         self._datastreams = values
 
@@ -134,8 +138,12 @@ class Sensor(entity.Entity):
         if values is None:
             self._multi_datastreams = None
             return
+        if type(values) == list and all(isinstance(mds, multi_datastream.MultiDatastream) for mds in values):
+            entity_class = entity_type.EntityTypes['MultiDatastream']['class']
+            self._multi_datastreams = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
         if type(values) != entity_list.EntityList or\
-                any((not isinstance(mds, multi_datastream.MultiDatastream)) for mds in values):
+                any((not isinstance(mds, multi_datastream.MultiDatastream)) for mds in values.entities):
             raise ValueError('multi_datastreams should be a list of multi_datastreams!')
         self._multi_datastreams = values
 

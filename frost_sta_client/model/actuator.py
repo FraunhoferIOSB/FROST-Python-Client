@@ -112,6 +112,13 @@ class Actuator(entity.Entity):
 
     @tasking_capabilities.setter
     def tasking_capabilities(self, values):
+        if values is None:
+            self._tasking_capabilities = None
+            return
+        if type(values) == list and all(isinstance(tc, tasking_capability.TaskingCapability) for tc in values):
+            entity_class = entity_type.EntityTypes['TaskingCapability']['class']
+            self._tasking_capabilities = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
         if type(values) != entity_list.EntityList or \
                 any((not isinstance(tc, tasking_capability.TaskingCapability)) for tc in values.entities):
             raise ValueError('Tasking capabilities should be a list of TaskingCapabilities')

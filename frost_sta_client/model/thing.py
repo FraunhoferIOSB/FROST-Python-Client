@@ -107,6 +107,10 @@ class Thing(entity.Entity):
         if values is None:
             self._locations = None
             return
+        if type(values) == list and all(isinstance(loc, location.Location) for loc in values):
+            entity_class = entity_type.EntityTypes['Location']['class']
+            self._locations = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
         if type(values) != entity_list.EntityList or \
                 any((not isinstance(loc, location.Location)) for loc in values.entities):
             raise ValueError('locations should be a list of locations')
@@ -120,6 +124,10 @@ class Thing(entity.Entity):
     def historical_locations(self, values):
         if values is None:
             self._historical_locations = None
+            return
+        if type(values) == list and all(isinstance(loc, historical_location.HistoricalLocation) for loc in values):
+            entity_class = entity_type.EntityTypes['HistoricalLocation']['class']
+            self._historical_locations = entity_list.EntityList(entity_class=entity_class, entities=values)
             return
         if type(values) != entity_list.EntityList or \
                 any((not isinstance(loc, historical_location.HistoricalLocation)) for loc in values.entities):
@@ -135,6 +143,10 @@ class Thing(entity.Entity):
         if values is None:
             self._datastreams = None
             return
+        if type(values) == list and all(isinstance(ds, datastream.Datastream) for ds in values):
+            entity_class = entity_type.EntityTypes['Datastream']['class']
+            self._datastreams = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
         if type(values) != entity_list.EntityList or \
                 any((not isinstance(ds, datastream.Datastream)) for ds in values.entities):
             raise ValueError('datastreams should be a list of datastreams')
@@ -149,6 +161,10 @@ class Thing(entity.Entity):
         if values is None:
             self._multi_datastreams = None
             return
+        if type(values) == list and all(isinstance(ds, multi_datastream.MultiDatastream) for ds in values):
+            entity_class = entity_type.EntityTypes['MultiDatastream']['class']
+            self._multi_datastreams = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
         if type(values) != entity_list.EntityList or \
                 any((not isinstance(ds, multi_datastream.MultiDatastream)) for ds in values.entities):
             raise ValueError('Multidatastreams should be a list of MultiDatastreams')
@@ -162,6 +178,10 @@ class Thing(entity.Entity):
     def tasking_capabilities(self, values):
         if values is None:
             self._tasking_capabilities = None
+            return
+        if type(values) == list and all(isinstance(tc, tasking_capability.TaskingCapability) for tc in values):
+            entity_class = entity_type.EntityTypes['TaskingCapability']['class']
+            self._tasking_capabilities = entity_list.EntityList(entity_class=entity_class, entities=values)
             return
         if type(values) != entity_list.EntityList or \
                 any((not isinstance(tc, tasking_capability.TaskingCapability)) for tc in values.entities):

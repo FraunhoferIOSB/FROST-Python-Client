@@ -64,8 +64,15 @@ class HistoricalLocation(entity.Entity):
 
     @locations.setter
     def locations(self, values):
+        if values is None:
+            self._locations = None
+            return
+        if type(values) == list and all(isinstance(loc, location.Location) for loc in values):
+            entity_class = entity_type.EntityTypes['Location']['class']
+            self._locations = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
         if type(values) == entity_list.EntityList and\
-                all((isinstance(loc, location.Location)) for loc in values):
+                all((isinstance(loc, location.Location)) for loc in values.entities):
             self._locations = values
             return
         raise ValueError('locations should be a list of locations!')

@@ -155,8 +155,12 @@ class Location(entity.Entity):
         if values is None:
             self._historical_locations = None
             return
+        if type(values) == list and all(isinstance(hl, historical_location.HistoricalLocation) for hl in values):
+            entity_class = entity_type.EntityTypes['HistoricalLocation']['class']
+            self._historical_locations = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
         if type(values) == entity_list.EntityList and \
-                all(isinstance(hl, historical_location.HistoricalLocation) for hl in values):
+                all(isinstance(hl, historical_location.HistoricalLocation) for hl in values.entities):
             self._historical_locations = values
         raise ValueError('historical_location should be of type HistoricalLocation!')
 

@@ -18,7 +18,7 @@ from . import entity
 
 import frost_sta_client.dao.features_of_interest
 
-from .ext import entity_list
+from .ext import entity_list, entity_type
 
 import json
 
@@ -110,6 +110,11 @@ class FeatureOfInterest(entity.Entity):
         if values is None:
             self._observations = None
             return
+        if type(values) == list and \
+                all(isinstance(ob, frost_sta_client.model.observation.Observation) for ob in values):
+            entity_class = entity_type.EntityTypes['Observation']['class']
+            self._observations = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
         if type(values) == entity_list.EntityList and \
                 all((isinstance(ob, frost_sta_client.model.observation.Observation)) for ob in values.entities):
             self._observations = values
@@ -131,6 +136,10 @@ class FeatureOfInterest(entity.Entity):
             raise TypeError('feature should be json serializable')
         self._feature = value
 
+    def ensure_service_on_children(self, service):
+        if self.observations is not None:
+            self.observations.set_service(service)
+
     def __eq__(self, other):
         if other is None:
             return False
@@ -149,10 +158,6 @@ class FeatureOfInterest(entity.Entity):
         if self.feature != other.feature:
             return False
         return True
-
-    def ensure_service_on_children(self, service):
-        if self.observations is not None:
-            self.observations.set_service(service)
 
     def __ne__(self, other):
         return not self == other

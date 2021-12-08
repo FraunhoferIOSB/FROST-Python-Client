@@ -113,7 +113,12 @@ class ObservedProperty(entity.Entity):
         if value is None:
             self._datastreams = None
             return
-        if type(value) != entity_list.EntityList or any((not isinstance(ds, datastream.Datastream)) for ds in value):
+        if type(value) == list and all(isinstance(ds, datastream.Datastream) for ds in value):
+            entity_class = entity_type.EntityTypes['Datastream']['class']
+            self._datastreams = entity_list.EntityList(entity_class=entity_class, entities=value)
+            return
+        if type(value) != entity_list.EntityList \
+                or any((not isinstance(ds, datastream.Datastream)) for ds in value.entities):
             raise ValueError('datastreams should be of list of type Datastream!')
         self._datastreams = value
 
@@ -126,8 +131,12 @@ class ObservedProperty(entity.Entity):
         if values is None:
             self._multi_datastreams = None
             return
+        if type(values) == list and all(isinstance(mds, multi_datastream.MultiDatastream) for mds in values):
+            entity_class = entity_type.EntityTypes['MultiDatastream']['class']
+            self._multi_datastreams = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
         if type(values) != entity_list.EntityList or\
-                any((not isinstance(mds, multi_datastream.MultiDatastream)) for mds in values):
+                any((not isinstance(mds, multi_datastream.MultiDatastream)) for mds in values.entities):
             raise ValueError('multi_datastreams should be a list of multi_datastreams!')
         self._multi_datastreams = values
 

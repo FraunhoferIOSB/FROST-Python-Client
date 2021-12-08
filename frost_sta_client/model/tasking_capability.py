@@ -109,8 +109,12 @@ class TaskingCapability(entity.Entity):
         if value is None:
             self._tasks = None
             return
+        if type(value) == list and all(isinstance(t, frost_sta_client.model.task.Task) for t in value):
+            entity_class = entity_type.EntityTypes['Task']['class']
+            self._tasks = entity_list.EntityList(entity_class=entity_class, entities=value)
+            return
         if type(value) == entity_list.EntityList \
-                and all(isinstance(t, frost_sta_client.model.task.Task) for t in value):
+                and all(isinstance(t, frost_sta_client.model.task.Task) for t in value.entities):
             self._tasks = value
             return
         raise ValueError('tasks should be of type Task!')
