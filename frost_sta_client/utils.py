@@ -1,5 +1,21 @@
+# Copyright (C) 2021 Fraunhofer Institut IOSB, Fraunhoferstr. 1, D 76131
+# Karlsruhe, Germany.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import jsonpickle
-import demjson
+import demjson3
 import datetime
 import geojson
 import frost_sta_client.model.ext.entity_list
@@ -17,7 +33,7 @@ def transform_entity_to_json_dict(entity):
 def transform_json_to_entity(json_response, entity_class):
     decodable_str = '{\'py/object\': \'' + entity_class + '\', \'py/state\': ' \
                     + jsonpickle.encode(json_response, unpicklable=False) + '}'
-    return jsonpickle.decode(decodable_str, backend=demjson)
+    return jsonpickle.decode(decodable_str, backend=demjson3)
 
 
 def transform_json_to_entity_list(json_response, entity_class):
