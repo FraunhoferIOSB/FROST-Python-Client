@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import json
 
 from frost_sta_client.dao.sensor import SensorDao
 
@@ -101,9 +102,14 @@ class Sensor(entity.Entity):
 
     @metadata.setter
     def metadata(self, value):
-        if type(value) != str:
-            raise ValueError('metadata should be of type str!')
-        self._metadata = value
+        if value is None:
+            self._metadata = None
+            return
+        try:
+            json.dumps(value)
+        except TypeError:
+            raise TypeError('metadata should be json serializable')
+        self._result = value
 
     @property
     def datastreams(self):
@@ -162,17 +168,22 @@ class Sensor(entity.Entity):
         return not self == other
 
     def __getstate__(self):
-        _data = super().__getstate__()
-        _data['name'] = self._name
-        _data['description'] = self._description
-        _data['properties'] = self._properties
-        _data['encodingType'] = self._encoding_type
-        _data['metadata'] = self._metadata
+        data = super().__getstate__()
+        if self.name is not None and self.name != '':
+            data['name'] = self._name
+        if self.description is not None and self.description != '':
+            data['description'] = self._description
+        if self.properties is not None and self.properties != {}:
+            data['properties'] = self._properties
+        if self.encoding_type is not None and self.encoding_type != '':
+            data['encodingType'] = self._encoding_type
+        if self.metadata is not None:
+            data['metadata'] = self._metadata
         if self.datastreams is not None and len(self._datastreams.entities) > 0:
-            _data['Datastreams'] = self._datastreams.__getstate__()
+            data['Datastreams'] = self._datastreams.__getstate__()
         if self.multi_datastreams is not None and len(self.multi_datastreams.entities) > 0:
-            _data['MultiDatastreams'] = self._multi_datastreams.__getstate__()
-        return _data
+            data['MultiDatastreams'] = self._multi_datastreams.__getstate__()
+        return data
 
     def __setstate__(self, state):
         super().__setstate__(state)

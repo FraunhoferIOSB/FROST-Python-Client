@@ -144,11 +144,16 @@ class Actuator(entity.Entity):
 
     def __getstate__(self):
         data = super().__getstate__()
-        data['name'] = self.name
-        data['description'] = self.description
-        data['encodingType'] = self.encoding_type
-        data['metadata'] = self.metadata
-        data['properties'] = self.properties
+        if self.name is not None and self.name != '':
+            data['name'] = self.name
+        if self.description is not None and self.description != '':
+            data['description'] = self.description
+        if self.encoding_type is not None and self.encoding_type != '':
+            data['encodingType'] = self.encoding_type
+        if self.metadata is not None and self.metadata != {}:
+            data['metadata'] = self.metadata
+        if self.properties is not None and self.properties != {}:
+            data['properties'] = self.properties
         if self.tasking_capabilities is not None and len(self.tasking_capabilities.entities) > 0:
             data['taskingCapabilities'] = self.tasking_capabilities.__getstate__()
         return data

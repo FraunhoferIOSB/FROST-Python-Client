@@ -264,10 +264,14 @@ class Datastream(entity.Entity):
 
     def __getstate__(self):
         data = super().__getstate__()
-        data['name'] = self.name
-        data['description'] = self.description
-        data['observationType'] = self.observation_type
-        data['properties'] = self.properties
+        if self.name is not None and self.name != '':
+            data['name'] = self.name
+        if self.description is not None and self.description != '':
+            data['description'] = self.description
+        if self.observation_type is not None and self.observation_type != '':
+            data['observationType'] = self.observation_type
+        if self.properties is not None and self.properties != {}:
+            data['properties'] = self.properties
         if self.unit_of_measurement is not None:
             data['unitOfMeasurement'] = self.unit_of_measurement
         if self.observed_area is not None:

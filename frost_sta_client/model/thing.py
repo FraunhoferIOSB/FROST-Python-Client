@@ -198,9 +198,12 @@ class Thing(entity.Entity):
 
     def __getstate__(self):
         data = super().__getstate__()
-        data['name'] = self.name
-        data['description'] = self.description
-        data['properties'] = self.properties
+        if self.name is not None and self.name != '':
+            data['name'] = self.name
+        if self.description is not None and self.description != '':
+            data['description'] = self.description
+        if self.properties is not None and self.properties != {}:
+            data['properties'] = self.properties
         if self._locations is not None and len(self.locations.entities) > 0:
             data['Locations'] = self.locations.__getstate__()
         if self._historical_locations is not None and len(self.historical_locations.entities) > 0:

@@ -59,7 +59,7 @@ class Task(entity.Entity):
 
     @creation_time.setter
     def creation_time(self, value):
-        self.creation_time = utils.process_datetime(value)
+        self._creation_time = utils.process_datetime(value)
 
     @property
     def tasking_capability(self):
@@ -95,13 +95,14 @@ class Task(entity.Entity):
         return not self == other
 
     def __getstate__(self):
-        _data = super().__getstate__()
-        _data['taskingParameters'] = self.tasking_parameters
+        data = super().__getstate__()
+        if self.tasking_parameters is not None and self.tasking_parameters != {}:
+            data['taskingParameters'] = self.tasking_parameters
         if self.creation_time is not None:
-            _data['creationTime'] = self.creation_time
+            data['creationTime'] = self.creation_time
         if self.tasking_capability is not None:
-            _data['TaskingCapability'] = self.tasking_capability
-        return _data
+            data['TaskingCapability'] = self.tasking_capability
+        return data
 
     def __setstate__(self, state):
         super().__setstate__(state)

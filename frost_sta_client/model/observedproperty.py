@@ -159,10 +159,14 @@ class ObservedProperty(entity.Entity):
 
     def __getstate__(self):
         data = super().__getstate__()
-        data['name'] = self.name
-        data['description'] = self.description
-        data['definition'] = self.definition
-        data['properties'] = self.properties
+        if self.name is not None and self.name != '':
+            data['name'] = self.name
+        if self.description is not None and self.description != '':
+            data['description'] = self.description
+        if self.definition is not None and self.definition != '':
+            data['definition'] = self.definition
+        if self.properties is not None and self.properties != {}:
+            data['properties'] = self.properties
         if self.datastreams is not None and len(self.datastreams.entities) > 0:
             data['Datastream'] = self.datastreams.__getstate__()
         if self.multi_datastreams is not None and len(self.multi_datastreams.entities) > 0:

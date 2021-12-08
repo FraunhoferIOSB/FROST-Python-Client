@@ -201,23 +201,26 @@ class Observation(entity.Entity):
         return not self == other
 
     def __getstate__(self):
-        _data = super().__getstate__()
-        _data['parameters'] = self.parameters
-        _data['result'] = self.result
-        _data['resultQuality'] = self.result_quality
+        data = super().__getstate__()
+        if self.parameters is not None and self.parameters != {}:
+            data['parameters'] = self.parameters
+        if self.result is not None:
+            data['result'] = self.result
+        if self.result_quality is not None:
+            data['resultQuality'] = self.result_quality
         if self.phenomenon_time is not None:
-            _data['phenomenonTime'] = self.phenomenon_time
+            data['phenomenonTime'] = self.phenomenon_time
         if self.result_time is not None:
-            _data['resultTime'] = self.result_time
+            data['resultTime'] = self.result_time
         if self.valid_time is not None:
-            _data['validTime'] = self.valid_time
+            data['validTime'] = self.valid_time
         if self.datastream is not None:
-            _data['Datastream'] = self.datastream.__getstate__()
+            data['Datastream'] = self.datastream.__getstate__()
         if self.multi_datastream is not None:
-            _data['MultiDatastream'] = self.multi_datastream.__getstate__()
+            data['MultiDatastream'] = self.multi_datastream.__getstate__()
         if self.feature_of_interest is not None:
-            _data['FeatureOfInterest'] = self.feature_of_interest.__getstate__()
-        return _data
+            data['FeatureOfInterest'] = self.feature_of_interest.__getstate__()
+        return data
 
     def __setstate__(self, state):
         super().__setstate__(state)

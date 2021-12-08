@@ -109,7 +109,8 @@ class TaskingCapability(entity.Entity):
         if value is None:
             self._tasks = None
             return
-        if type(value) == entity_list.EntityList and all(isinstance(t, frost_sta_client.model.task.Task) for t in value):
+        if type(value) == entity_list.EntityList \
+                and all(isinstance(t, frost_sta_client.model.task.Task) for t in value):
             self._tasks = value
             return
         raise ValueError('tasks should be of type Task!')
@@ -170,10 +171,14 @@ class TaskingCapability(entity.Entity):
 
     def __getstate__(self):
         data = super().__getstate__()
-        data['name'] = self.name
-        data['description'] = self.description
-        data['taskingParameters'] = self.tasking_parameters
-        data['properties'] = self.properties
+        if self.name is not None and self.name != '':
+            data['name'] = self.name
+        if self.description is not None and self.description != '':
+            data['description'] = self.description
+        if self.tasking_parameters is not None and self.tasking_parameters != {}:
+            data['taskingParameters'] = self.tasking_parameters
+        if self.properties is not None and self.properties != {}:
+            data['properties'] = self.properties
         if self.thing is not None:
             data['Thing'] = self.thing
         if self.tasks is not None and len(self.tasks.entities) > 0:

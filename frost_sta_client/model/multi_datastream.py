@@ -144,7 +144,7 @@ class MultiDatastream(entity.Entity):
 
     @multi_observation_data_types.setter
     def multi_observation_data_types(self, values):
-        if not values is None and (type(values) != list or any((not isinstance(dtype, str)) for dtype in values)):
+        if values is not None and (type(values) != list or any((not isinstance(dtype, str)) for dtype in values)):
             raise ValueError('multi_observations_data_types should be list of type str!')
         self._multi_observation_data_types = values
     
@@ -176,13 +176,14 @@ class MultiDatastream(entity.Entity):
     @result_time.setter
     def result_time(self, value):
         self._result_time = utils.process_datetime(value)
+
     @property
     def thing(self):
         return self._thing
 
     @thing.setter
     def thing(self, value):
-        if not value is None and type(value) != thing.Thing:
+        if value is not None and type(value) != thing.Thing:
             raise ValueError('thing should be of type Thing!')
         self._thing = value
 
@@ -192,7 +193,7 @@ class MultiDatastream(entity.Entity):
 
     @sensor.setter
     def sensor(self, value):
-        if not value is None and type(value) != sensor.Sensor:
+        if value is not None and type(value) != sensor.Sensor:
             raise ValueError('sensor should be of type Sensor!')
         self._sensor = value
 
@@ -264,15 +265,24 @@ class MultiDatastream(entity.Entity):
 
     def __getstate__(self):
         data = super().__getstate__()
-        data['name'] = self.name
-        data['description'] = self.description
-        data['observationType'] = self.observation_type
-        data['observedArea'] = self.observed_area
-        data['phenomenonTime'] = self.phenomenon_time
-        data['resultTime'] = self.result_time
-        data['Thing'] = self.thing
-        data['Sensor'] = self.sensor
-        data['properties'] = self.properties
+        if self.name is not None and self.name != '':
+            data['name'] = self.name
+        if self.description is not None and self.description != '':
+            data['description'] = self.description
+        if self.observation_type is not None and self.observation_type != '':
+            data['observationType'] = self.observation_type
+        if self.observed_area is not None:
+            data['observedArea'] = self.observed_area
+        if self.phenomenon_time is not None:
+            data['phenomenonTime'] = self.phenomenon_time
+        if self.result_time is not None:
+            data['resultTime'] = self.result_time
+        if self.thing is not None:
+            data['Thing'] = self.thing
+        if self.sensor is not None:
+            data['Sensor'] = self.sensor
+        if self.properties is not None and self.properties != {}:
+            data['properties'] = self.properties
         if self.unit_of_measurements is not None and len(self.unit_of_measurements.entities) > 0:
             data['unitOfMeasurements'] = self.unit_of_measurements.__getstate__()
         if len(self.multi_observation_data_types) > 0:
@@ -302,7 +312,8 @@ class MultiDatastream(entity.Entity):
             entity_class = entity_type.EntityTypes['UnitOfMeasurement']['class']
             self.unit_of_measurements = utils.transform_json_to_entity_list(state['unitOfMeasurements'], entity_class)
             self.unit_of_measurements.next_link = state.get('unitOfMeasurements', None)
-        if state.get('multiObservationDataTypes', None) is not None and type(state['multiObservationDataTypes']) == list:
+        if state.get('multiObservationDataTypes', None) is not None \
+                and type(state['multiObservationDataTypes']) == list:
             self.multi_observation_data_types = []
             for value in state['multiObservationDataTypes']:
                 self.multi_observation_data_types.append(value)

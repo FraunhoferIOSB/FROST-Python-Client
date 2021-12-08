@@ -54,6 +54,8 @@ def transform_json_to_entity_list(json_response, entity_class):
 
 
 def process_datetime(value):
+    if value is None:
+        return value
     if type(value) == str:
         value = value.replace('Z', '')
         if '/' in value:
