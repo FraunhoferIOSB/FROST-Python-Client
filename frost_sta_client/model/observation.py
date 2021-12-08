@@ -20,6 +20,7 @@ import frost_sta_client.model
 from . import entity
 from . import multi_datastream
 from . import datastream
+from . import feature_of_interest
 
 from frost_sta_client.dao.observation import ObservationDao
 
@@ -137,7 +138,7 @@ class Observation(entity.Entity):
         if value is None:
             self._feature_of_interest = None
             return
-        if type(value) != int:
+        if type(value) != feature_of_interest.FeatureOfInterest:
             raise ValueError('feature_of_interest should be of type FeatureOfInterest!')
         self._feature_of_interest = value
 
