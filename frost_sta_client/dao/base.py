@@ -97,16 +97,30 @@ class BaseDao:
         entity.service = self.service
         logging.info('Received response: ' + str(response.status_code))
 
+    def patch(self, entity):
+        url = furl(self.service.url)
+        if entity.id is None or entity.id == '':
+            raise AttributeError('please provide an entity with a valid id')
+        url.path.add(self.entity_path(entity.id))
+        logging.info('Patching to {}'.format(url.url))
+        json_dict = frost_sta_client.utils.transform_entity_to_json_dict(entity)
+        try:
+            response = self.service.execute('patch', url, json=json_dict)
+        except requests.exceptions.HTTPError as e:
+            raise e
+        logging.info('Received response: {}'.format(str(response.status_code)))
+
     def update(self, entity):
         url = furl(self.service.url)
+        if entity.id is None or entity.id == '':
+            raise AttributeError('please provide an entity with a valid id')
         url.path.add(self.entity_path(entity.id))
         logging.info('Updating to {}'.format(url.url))
         json_dict = frost_sta_client.utils.transform_entity_to_json_dict(entity)
         try:
             response = self.service.execute('put', url, json=json_dict)
         except requests.exceptions.HTTPError as e:
-            print("Error " + str(e))
-            return
+            raise e
         logging.info('Received response: {}'.format(str(response.status_code)))
 
     def find(self, id):
