@@ -1,22 +1,24 @@
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 
-# If build on GitLab-CI add dev and pipeline id as prefix to the version, to have a unique artifact
-ci_pipeline_ID = os.environ.get('CI_PIPELINE_ID')
-if ci_pipeline_ID:
-    VERSION = "1.1.1" + ".dev" + ci_pipeline_ID
-else:
-    VERSION = "1.1.1"
+here = os.path.abspath(os.path.dirname(__file__))
+info = {}
+with open(os.path.join(here, 'frost_sta_client', '__version__.py')) as f:
+    exec(f.read(), info)
+
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
 
 setup(
-    name='frost_sta_client',
-    version=VERSION,
-    description='a client library to facilitate interaction with a FROST SensorThings API Server',
-    author='Katharina Emde',
-    author_email='katharina.emde@iosb.fraunhofer.de',
-    packages=['frost_sta_client', 'frost_sta_client/dao',
-              'frost_sta_client/model', 'frost_sta_client/query', 'frost_sta_client/service',
-              'frost_sta_client/model/ext'],
-    install_requires=['jsonpickle', 'demjson3', 'requests', 'furl', 'geojson'],
-    key_words=['sta', 'ogc', 'frost']
+    name=info['__title__'],
+    version=info['__version__'],
+    description=info['__description__'],
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    author=info['__author__'],
+    author_email=info['__contact__'],
+    url=info['__url__'],
+    packages=find_packages(),
+    install_requires=['demjson3>=3.0.5', 'furl>=2.1.3', 'geojson>=2.5.0', 'jsonpickle>=2.0.0', 'requests>=2.26.0'],
+    key_words=['sta', 'ogc', 'frost', 'sensorthingsapi']
 )
