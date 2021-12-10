@@ -16,7 +16,7 @@ identified by a URI.
 ### CRUD operations
 The source code below demonstrates the CRUD operations for Thing objects. Operations for other entities work similarly.
 ```
-import frost_client as fsc
+import frost_sta_client as fsc
 
 url = "exampleserver.com/FROST-Server/v1.1"
 service = fsc.SensorThingsService(url)

@@ -18,6 +18,7 @@ from frost_sta_client.model.tasking_capability import TaskingCapability
 from frost_sta_client.model.thing import Thing
 from frost_sta_client.model.ext.unitofmeasurement import UnitOfMeasurement
 from frost_sta_client.service.sensorthingsservice import SensorThingsService
+from frost_sta_client.service.auth_handler import AuthHandler
 
 from .__version__ import (__title__, __version__, __license__, __author__, __contact__, __url__,
                           __description__, __copyright__)
