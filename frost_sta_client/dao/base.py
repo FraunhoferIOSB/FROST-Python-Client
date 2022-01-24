@@ -20,7 +20,6 @@ import frost_sta_client.utils
 import logging
 import requests
 from furl import furl
-import jsonpatch
 
 
 class BaseDao:
