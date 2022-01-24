@@ -37,8 +37,9 @@ class Thing(entity.Entity):
                  historical_locations=None,
                  datastreams=None,
                  multi_datastreams=None,
-                 tasking_capabilities=None):
-        super().__init__()
+                 tasking_capabilities=None,
+                 **kwargs):
+        super().__init__(**kwargs)
         if properties is None:
             properties = {}
         self.name = name

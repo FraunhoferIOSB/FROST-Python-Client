@@ -39,8 +39,9 @@ class Location(entity.Entity):
                  properties=None,
                  location=None,
                  thing=None,
-                 historical_locations=None):
-        super().__init__()
+                 historical_locations=None,
+                 **kwargs):
+        super().__init__(**kwargs)
         if properties is None:
             properties = {}
         self.name = name

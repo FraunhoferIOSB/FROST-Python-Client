@@ -40,7 +40,7 @@ class Observation(entity.Entity):
                  multi_datastream=None,
                  feature_of_interest=None,
                  **kwargs):
-        super().__init__(kwargs.get('id', ''), kwargs.get('selfLink', ''))
+        super().__init__(**kwargs)
         if parameters is None:
             parameters = {}
         self.phenomenon_time = phenomenon_time

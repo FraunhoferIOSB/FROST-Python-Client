@@ -45,7 +45,8 @@ class Datastream(entity.Entity):
                  thing=None,
                  sensor=None,
                  observed_property=None,
-                 observations=None):
+                 observations=None,
+                 **kwargs):
         """
         This class handles Datastreams assigned to a Thing. Before you create a Datastreams, you firstly have to
         create a Thing, a Sensor and an observedProperty to which you have to refer by specifying its ids.
@@ -59,7 +60,7 @@ class Datastream(entity.Entity):
             Should be a dict of keys 'name', 'symbol', 'definition' with values of str.
 
         """
-        super().__init__()
+        super().__init__(**kwargs)
         if properties is None:
             properties = {}
         self.name = name

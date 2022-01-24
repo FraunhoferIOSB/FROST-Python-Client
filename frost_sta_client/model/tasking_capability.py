@@ -35,8 +35,9 @@ class TaskingCapability(entity.Entity):
                  tasking_parameters=None,
                  tasks=None,
                  thing=None,
-                 actuator=None):
-        super().__init__()
+                 actuator=None,
+                 **kwargs):
+        super().__init__(**kwargs)
         if tasking_parameters is None:
             tasking_parameters = {}
         if properties is None:

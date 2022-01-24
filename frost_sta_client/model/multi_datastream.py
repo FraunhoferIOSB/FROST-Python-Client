@@ -45,8 +45,9 @@ class MultiDatastream(entity.Entity):
                  thing=None,
                  sensor=None,
                  observed_properties=None,
-                 observations=None):
-        super().__init__()
+                 observations=None,
+                 **kwargs):
+        super().__init__(**kwargs)
         if properties is None:
             properties = {}
         if multi_observation_data_types is None:

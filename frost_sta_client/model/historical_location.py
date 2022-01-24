@@ -32,8 +32,9 @@ class HistoricalLocation(entity.Entity):
     def __init__(self,
                  locations=None,
                  time=None,
-                 thing=None):
-        super().__init__()
+                 thing=None,
+                 **kwargs):
+        super().__init__(**kwargs)
         self.locations = locations
         self.time = time
         self.thing = thing

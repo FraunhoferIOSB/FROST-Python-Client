@@ -33,8 +33,9 @@ class ObservedProperty(entity.Entity):
                  description='',
                  datastreams=None,
                  properties=None,
-                 multi_datastreams=None):
-        super().__init__()
+                 multi_datastreams=None,
+                 **kwargs):
+        super().__init__(**kwargs)
         if properties is None:
             properties = {}
         self.properties = properties

@@ -33,7 +33,7 @@ EntityTypes = {
         'class': 'frost_sta_client.model.feature_of_interest.FeatureOfInterest',
         'relations_list': ['Observation']
     },
-    'HistoricaLocation': {
+    'HistoricalLocation': {
         'singular': 'HistoricalLocation',
         'plural': 'HistoricalLocations',
         'class': 'frost_sta_client.model.historical_location.HistoricalLocation',

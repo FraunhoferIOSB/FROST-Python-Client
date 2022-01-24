@@ -35,8 +35,9 @@ class Sensor(entity.Entity):
                  properties=None,
                  metadata=None,
                  datastreams=None,
-                 multi_datastreams=None):
-        super().__init__()
+                 multi_datastreams=None,
+                 **kwargs):
+        super().__init__(**kwargs)
         if properties is None:
             properties = {}
         self.name = name

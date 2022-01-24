@@ -27,8 +27,9 @@ class Task(entity.Entity):
     def __init__(self,
                  tasking_parameters=None,
                  creation_time=None,
-                 tasking_capability=None):
-        super().__init__()
+                 tasking_capability=None,
+                 **kwargs):
+        super().__init__(**kwargs)
         if tasking_parameters is None:
             tasking_parameters = {}
         self.tasking_parameters = tasking_parameters

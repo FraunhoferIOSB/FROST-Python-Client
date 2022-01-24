@@ -122,8 +122,6 @@ class Entity(ABC):
         data = {}
         if self.id is not None and self.id != '':
             data['@iot.id'] = self.id
-        if self.self_link is not None and self.self_link != '':
-            data['@iot.selfLink'] = self.self_link
         return data
 
     def __setstate__(self, state):

@@ -20,6 +20,7 @@ import frost_sta_client.utils
 import logging
 import requests
 from furl import furl
+import jsonpatch
 
 
 class BaseDao:
@@ -137,10 +138,6 @@ class BaseDao:
         json_response['id'] = json_response['@iot.id']
         entity = frost_sta_client.utils.transform_json_to_entity(json_response, self.entity_class)
         return entity
-
-    # def patch(self, entity, patch):
-    #     url = furl(self.service.url)
-    #     url.path.add(self.entity_path(entity.id))
 
     def delete(self, entity):
         url = furl(self.service.url)

@@ -30,8 +30,9 @@ class FeatureOfInterest(entity.Entity):
                  encoding_type='',
                  feature=None,
                  properties=None,
-                 observations=None):
-        super().__init__()
+                 observations=None,
+                 **kwargs):
+        super().__init__(**kwargs)
         if properties is None:
             properties = {}
         self.name = name
