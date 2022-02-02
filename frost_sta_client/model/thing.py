@@ -102,7 +102,7 @@ class Thing(entity.Entity):
     @property
     def locations(self):
         return self._locations
-    
+
     @locations.setter
     def locations(self, values):
         if values is None:

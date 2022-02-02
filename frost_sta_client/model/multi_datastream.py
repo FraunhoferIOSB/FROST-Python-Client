@@ -152,7 +152,7 @@ class MultiDatastream(entity.Entity):
         if values is not None and (type(values) != list or any((not isinstance(dtype, str)) for dtype in values)):
             raise ValueError('multi_observations_data_types should be list of type str!')
         self._multi_observation_data_types = values
-    
+
     @property
     def observed_area(self):
         return self._observed_area

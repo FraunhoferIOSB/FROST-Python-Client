@@ -84,7 +84,7 @@ class Observation(entity.Entity):
         except TypeError:
             raise TypeError('result should be json serializable')
         self._result = value
-    
+
     @property
     def result_time(self):
         return self._result_time
@@ -128,7 +128,7 @@ class Observation(entity.Entity):
         if type(values) != dict:
             raise ValueError('parameters should be of type dict!')
         self._parameters = values
-    
+
     @property
     def feature_of_interest(self):
         return self._feature_of_interest
@@ -240,9 +240,6 @@ class Observation(entity.Entity):
         if state.get("FeatureOfInterest", None) is not None:
             self.feature_of_interest = frost_sta_client.model.feature_of_interest.FeatureOfInterest()
             self.feature_of_interest.__setstate__(state['FeatureOfInterest'])
-
-
-
 
     def get_dao(self, service):
         return ObservationDao(service)

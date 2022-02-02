@@ -25,5 +25,3 @@ class AuthHandler:
     def add_auth_header(self):
         if not (self.username is None or self.password is None):
             return HTTPBasicAuth(self.username, self.password)
-
-

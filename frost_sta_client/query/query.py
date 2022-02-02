@@ -83,7 +83,7 @@ class Query:
         self.remove_all_params('$count')
         self.params['$count'] = 'true'
         return self
-    
+
     def top(self, num):
         self.remove_all_params('$top')
         self.params['$top'] = num

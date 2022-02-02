@@ -51,7 +51,7 @@ class Actuator(entity.Entity):
         for key, value in attributes.items():
             new_actuator.__dict__[key] = value
         return new_actuator
-    
+
     @property
     def name(self):
         return self._name
@@ -145,6 +145,7 @@ class Actuator(entity.Entity):
             return False
         if self.properties != other.properties:
             return False
+        return True
 
     def __ne__(self, other):
         return not self == other

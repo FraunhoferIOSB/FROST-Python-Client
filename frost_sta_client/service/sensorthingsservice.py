@@ -57,8 +57,8 @@ class SensorThingsService:
     def update(self, entity):
         entity.get_dao(self).update(entity)
 
-    def patch(self, entity):
-        entity.get_dao(self).patch(entity)
+    def patch(self, entity, patches):
+        entity.get_dao(self).patch(entity, patches)
 
     def delete(self, entity):
         entity.get_dao(self).delete(entity)

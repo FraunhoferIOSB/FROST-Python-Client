@@ -127,5 +127,3 @@ class Entity(ABC):
     def __setstate__(self, state):
         self.id = state.get('@iot.id', None)
         self.self_link = state.get('@iot.selfLink', '')
-
-

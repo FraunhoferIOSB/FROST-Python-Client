@@ -24,4 +24,3 @@ class LocationDao(base.BaseDao):
         A data access object for operations with the Location entity
         """
         base.BaseDao.__init__(self, service, EntityTypes["Location"])
-

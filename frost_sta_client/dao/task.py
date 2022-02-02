@@ -24,4 +24,3 @@ class TaskDao(base.BaseDao):
         A data access object for operations with the Task entity
         """
         base.BaseDao.__init__(self, service, EntityTypes['Task'])
-

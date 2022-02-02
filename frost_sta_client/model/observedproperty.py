@@ -62,7 +62,7 @@ class ObservedProperty(entity.Entity):
         if value is None:
             self._name = None
             return
-        if type(value) != str:
+        if isinstance(value, str):
             raise ValueError('name should be of type str!')
         self._name = value
 
@@ -75,7 +75,7 @@ class ObservedProperty(entity.Entity):
         if value is None:
             self._description = None
             return
-        if type(value) != str:
+        if isinstance(value, str):
             raise ValueError('description should be of type str!')
         self._description = value
 

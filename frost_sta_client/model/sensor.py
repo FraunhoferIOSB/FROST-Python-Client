@@ -115,7 +115,7 @@ class Sensor(entity.Entity):
     @property
     def datastreams(self):
         return self._datastreams
-    
+
     @datastreams.setter
     def datastreams(self, values):
         if values is None:
