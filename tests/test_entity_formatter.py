@@ -34,8 +34,7 @@ class TestEntityFormatter(unittest.TestCase):
         self.assertDictEqual(result, entity_json)
 
     def test_write_thing_with_location(self):
-        result = {'@iot.id': 1,
-                  'name': 'another nice thing',
+        result = {'name': 'another nice thing',
                   'description': 'This thing has also a nice location',
                   'Locations': [
                       {
@@ -43,7 +42,6 @@ class TestEntityFormatter(unittest.TestCase):
                       }
                   ]}
         entity = frost_sta_client.model.thing.Thing()
-        entity.id = 1
         entity.name = 'another nice thing'
         entity.description = 'This thing has also a nice location'
         entity.properties = {}
