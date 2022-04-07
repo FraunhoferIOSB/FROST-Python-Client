@@ -10,7 +10,7 @@ class TestEntityReader(unittest.TestCase):
 
     def test_write_thing_basic_success(self):
         json_dict = {
-            'phenomenonTime': '2016-01-07T02:00:00.000',
+            'phenomenonTime': '2016-01-07T02:00:00.000+00:00',
             'resultTime': None,
             'result': '0.15',
             'Datastream@iot.navigationLink': 'https://server.de/SensorThingsService/v1.0/'
@@ -23,7 +23,7 @@ class TestEntityReader(unittest.TestCase):
         result = frost_sta_client.utils.transform_json_to_entity(json_dict, "frost_sta_client.model.observation.Observation")
 
         exp_observation = frost_sta_client.model.observation.Observation(
-            phenomenon_time=datetime.datetime(year=2016, month=1, day=7, hour=2),
+            phenomenon_time='2016-01-07T02:00:00.000+00:00',
             result='0.15',
             id='719373',
             self_link='https://server.de/SensorThingsService/v1.0/Observations(7179373)'

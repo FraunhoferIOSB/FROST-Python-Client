@@ -18,7 +18,6 @@ import frost_sta_client.model
 from . import entity
 from . import location
 from . import thing
-from frost_sta_client.utils import process_datetime
 
 from frost_sta_client.dao.historical_location import HistoricalLocationDao
 
@@ -53,11 +52,7 @@ class HistoricalLocation(entity.Entity):
 
     @time.setter
     def time(self, value):
-        try:
-            self._time = process_datetime(value)
-        except ValueError:
-            raise ValueError('time should consist of one or two datetimes or a string '
-                             'containing an isoformated datetime')
+        self._time = utils.check_datetime(value, 'time')
 
     @property
     def locations(self):
@@ -114,7 +109,7 @@ class HistoricalLocation(entity.Entity):
         if data.get('@iot.id', None) is not None:
             return data
         if self.time is not None:
-            data['Time'] = self.time
+            data['Time'] = utils.parse_datetime(self.time)
         if self.thing is not None:
             data['Thing'] = self.thing
         if self.locations is not None and len(self.locations.entities) > 0:

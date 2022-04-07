@@ -4,3 +4,4 @@ requests
 furl
 geojson
 jsonpatch
+python-dateutil
