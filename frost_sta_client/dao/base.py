@@ -95,12 +95,8 @@ class BaseDao:
         try:
             response = self.service.execute('post', url, json=json_dict)
         except requests.exceptions.HTTPError as e:
-            error_text = e.response.text
-            try:
-                error_json = json.loads(error_text)
-                error_message = error_json['message']
-            except (json.JSONDecodeError, KeyError):
-                error_message = "unknown error message"
+            error_json = e.response.json()
+            error_message = error_json['message']
             logging.error("Creating {} failed with status-code {}, {}".format(type(entity).__name__,
                                                                             e.response.status_code,
                                                                             error_message))
@@ -133,12 +129,8 @@ class BaseDao:
         try:
             response = self.service.execute('patch', url, json=patches, headers=headers)
         except requests.exceptions.HTTPError as e:
-            error_text = e.response.text
-            try:
-                error_json = json.loads(error_text)
-                error_message = error_json['message']
-            except (json.JSONDecodeError, KeyError):
-                error_message = "unknown error message"
+            error_json = e.response.json()
+            error_message = error_json['message']
             logging.error("Patching {} failed with status-code {}, {}".format(type(entity).__name__,
                                                                             e.response.status_code,
                                                                             error_message))
@@ -155,12 +147,8 @@ class BaseDao:
         try:
             response = self.service.execute('put', url, json=json_dict)
         except requests.exceptions.HTTPError as e:
-            error_text = e.response.text
-            try:
-                error_json = json.loads(error_text)
-                error_message = error_json['message']
-            except (json.JSONDecodeError, KeyError):
-                error_message = "unknown error message"
+            error_json = e.response.json()
+            error_message = error_json['message']
             logging.error("Updating {} failed with status-code {}, {}".format(type(entity).__name__,
                                                                             e.response.status_code,
                                                                             error_message))
@@ -174,12 +162,8 @@ class BaseDao:
         try:
             response = self.service.execute('get', url)
         except requests.exceptions.HTTPError as e:
-            error_text = e.response.text
-            try:
-                error_json = json.loads(error_text)
-                error_message = error_json['message']
-            except (json.JSONDecodeError, KeyError):
-                error_message = "unknown error message"
+            error_json = e.response.json()
+            error_message = error_json['message']
             logging.error("Finding {} failed with status-code {}, {}".format(id,
                                                                             e.response.status_code,
                                                                             error_message))
@@ -197,12 +181,8 @@ class BaseDao:
         try:
             response = self.service.execute('delete', url)
         except requests.exceptions.HTTPError as e:
-            error_text = e.response.text
-            try:
-                error_json = json.loads(error_text)
-                error_message = error_json['message']
-            except (json.JSONDecodeError, KeyError):
-                error_message = "unknown error message"
+            error_json = e.response.json()
+            error_message = error_json['message']
             logging.error("Deleting {} failed with status-code {}, {}".format(type(entity).__name__,
                                                                             e.response.status_code,
                                                                             error_message))

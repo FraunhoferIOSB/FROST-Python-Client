@@ -51,12 +51,8 @@ class EntityList:
             try:
                 response = self.service.execute('get', self.next_link)
             except requests.exceptions.HTTPError as e:
-                error_text = e.response.text
-                try:
-                    error_json = json.loads(error_text)
-                    error_message = error_json['message']
-                except (json.JSONDecodeError, KeyError):
-                    error_message = "unknown error message"
+                error_json = e.response.json()
+                error_message = error_json['message']
                 logging.error("Query failed with status-code {}, {}".format(e.response.status_code, error_message))
                 raise e
             logging.debug('Received response: {} from {}'.format(response.status_code, self.next_link))
