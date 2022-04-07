@@ -17,7 +17,9 @@
 import jsonpickle
 import demjson3
 import datetime
+from dateutil.parser import isoparse
 import geojson
+import logging
 import frost_sta_client.model.ext.entity_list
 
 
@@ -53,39 +55,46 @@ def transform_json_to_entity_list(json_response, entity_class):
     return entity_list
 
 
-def process_datetime(value):
+def check_datetime(value, time_entity):
+    try:
+        parse_datetime(value)
+    except ValueError as e:
+        logging.error(f"error during {time_entity} check")
+        raise e
+    return value
+
+
+def parse_datetime(value) -> str:
     if value is None:
         return value
     if isinstance(value, str):
-        value = value.replace('Z', '')
         if '/' in value:
             try:
                 times = value.split('/')
                 if len(times) != 2:
-                    raise ValueError("If the phenomenon time interval is provided as a string,"
+                    raise ValueError("If the time interval is provided as a string,"
                                      " it should be in isoformat")
-                result = [datetime.datetime.fromisoformat(times[0]),
-                          datetime.datetime.fromisoformat(times[1])]
+                result = [isoparse(times[0]),
+                          isoparse(times[1])]
             except ValueError:
-                raise ValueError("If the phenomenon time interval is provided as a string,"
+                raise ValueError("If the time entity interval is provided as a string,"
                                  " it should be in isoformat")
-            result = result[0].isoformat() + 'Z/' + result[1].isoformat() + 'Z'
+            result = result[0].isoformat() + '/' + result[1].isoformat()
             return result
         else:
             try:
-                result = datetime.datetime.fromisoformat(value)
+                result = isoparse(value)
             except ValueError:
                 raise ValueError("If the phenomenon time is provided as string, it should be in isoformat")
-            result = result.isoformat() + 'Z'
+            result = result.isoformat()
             return result
-    if value is None:
-        return None
     if isinstance(value, datetime.datetime):
-        return value.isoformat() + 'Z'
+        return value.isoformat()
     if isinstance(value, list) and all(isinstance(v, datetime.datetime) for v in value):
-        return value[0].isoformat() + 'Z/' + value[1].isoformat() + 'Z'
+        return value[0].isoformat() + value[1].isoformat()
     else:
-        raise ValueError('phenomenon_time should consist of one or two datetimes')
+        raise ValueError('time entities should consist of one or two datetimes')
+
 
 
 def process_area(value):

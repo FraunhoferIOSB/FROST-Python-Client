@@ -68,7 +68,7 @@ class Observation(entity.Entity):
 
     @phenomenon_time.setter
     def phenomenon_time(self, value):
-        self._phenomenon_time = utils.process_datetime(value)
+        self._phenomenon_time = utils.check_datetime(value, 'phenomenon_time')
 
     @property
     def result(self):
@@ -91,7 +91,7 @@ class Observation(entity.Entity):
 
     @result_time.setter
     def result_time(self, value):
-        self._result_time = utils.process_datetime(value)
+        self._result_time = utils.check_datetime(value, 'result_time')
 
     @property
     def result_quality(self):
@@ -114,7 +114,7 @@ class Observation(entity.Entity):
 
     @valid_time.setter
     def valid_time(self, value):
-        self._valid_time = utils.process_datetime(value)
+        self._valid_time = utils.check_datetime(value, 'valid_time')
 
     @property
     def parameters(self):
@@ -212,11 +212,11 @@ class Observation(entity.Entity):
         if self.result_quality is not None:
             data['resultQuality'] = self.result_quality
         if self.phenomenon_time is not None:
-            data['phenomenonTime'] = self.phenomenon_time
+            data['phenomenonTime'] = utils.parse_datetime(self.phenomenon_time)
         if self.result_time is not None:
-            data['resultTime'] = self.result_time
+            data['resultTime'] = utils.parse_datetime(self.result_time)
         if self.valid_time is not None:
-            data['validTime'] = self.valid_time
+            data['validTime'] = utils.parse_datetime(self.valid_time)
         if self.datastream is not None:
             data['Datastream'] = self.datastream.__getstate__()
         if self.multi_datastream is not None:

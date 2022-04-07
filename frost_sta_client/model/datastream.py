@@ -171,7 +171,7 @@ class Datastream(entity.Entity):
 
     @phenomenon_time.setter
     def phenomenon_time(self, value):
-        self._phenomenon_time = utils.process_datetime(value)
+        self._phenomenon_time = utils.check_datetime(value, 'phenomenon_time')
 
     @property
     def result_time(self):
@@ -179,7 +179,7 @@ class Datastream(entity.Entity):
 
     @result_time.setter
     def result_time(self, value):
-        self._result_time = utils.process_datetime(value)
+        self._result_time = utils.check_datetime(value, 'result_time')
 
     @property
     def thing(self):
@@ -284,9 +284,9 @@ class Datastream(entity.Entity):
         if self.observed_area is not None:
             data['observedArea'] = self.observed_area
         if self.phenomenon_time is not None:
-            data['phenomenonTime'] = self.phenomenon_time
+            data['phenomenonTime'] = utils.parse_datetime(self.phenomenon_time)
         if self.result_time is not None:
-            data['resultTime'] = self.result_time
+            data['resultTime'] = utils.parse_datetime(self.result_time)
         if self.thing is not None:
             data['Thing'] = self.thing
         if self.sensor is not None:
