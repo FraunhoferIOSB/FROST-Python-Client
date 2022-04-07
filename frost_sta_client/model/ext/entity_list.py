@@ -17,6 +17,7 @@
 import frost_sta_client
 import logging
 import requests
+import json
 
 
 class EntityList:
@@ -50,9 +51,15 @@ class EntityList:
             try:
                 response = self.service.execute('get', self.next_link)
             except requests.exceptions.HTTPError as e:
-                print("Error " + str(e))
-                return []
-            logging.info('Received response: {} from {}'.format(response.status_code, self.next_link))
+                error_text = e.response.text
+                try:
+                    error_json = json.loads(error_text)
+                    error_message = error_json['message']
+                except (json.JSONDecodeError, KeyError):
+                    error_message = "unknown error message"
+                logging.error("Query failed with status-code {}, {}".format(e.response.status_code, error_message))
+                raise e
+            logging.debug('Received response: {} from {}'.format(response.status_code, self.next_link))
             try:
                 json_response = response.json()
             except ValueError:

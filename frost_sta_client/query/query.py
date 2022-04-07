@@ -19,6 +19,7 @@ import frost_sta_client.model.ext.entity_list
 
 from furl import furl
 import logging
+import json
 import requests
 
 
@@ -135,9 +136,15 @@ class Query:
         try:
             response = self.service.execute('get', url)
         except requests.exceptions.HTTPError as e:
-            print("Error " + str(e))
+            error_text = e.response.text
+            try:
+                error_json = json.loads(error_text)
+                error_message = error_json['message']
+            except (json.JSONDecodeError, KeyError):
+                error_message = "unknown error message"
+            logging.error("Query failed with status-code {}, {}".format(e.response.status_code, error_message))
             raise e
-        logging.info('Received response: {} from {}'.format(response.status_code, url))
+        logging.debug('Received response: {} from {}'.format(response.status_code, url))
         try:
             json_response = response.json()
         except ValueError:

@@ -20,6 +20,7 @@ import frost_sta_client.utils
 import logging
 import requests
 import jsonpatch
+import json
 from furl import furl
 
 
@@ -89,15 +90,24 @@ class BaseDao:
     def create(self, entity):
         url = furl(self.service.url)
         url.path.add(self.entitytype_plural)
-        logging.info('Posting to ' + str(url.url))
+        logging.debug('Posting to ' + str(url.url))
         json_dict = frost_sta_client.utils.transform_entity_to_json_dict(entity)
         try:
             response = self.service.execute('post', url, json=json_dict)
         except requests.exceptions.HTTPError as e:
+            error_text = e.response.text
+            try:
+                error_json = json.loads(error_text)
+                error_message = error_json['message']
+            except (json.JSONDecodeError, KeyError):
+                error_message = "unknown error message"
+            logging.error("Creating {} failed with status-code {}, {}".format(type(entity).__name__,
+                                                                            e.response.status_code,
+                                                                            error_message))
             raise e
         entity.id = int(frost_sta_client.utils.extract_value(response.headers['location']))
         entity.service = self.service
-        logging.info('Received response: ' + str(response.status_code))
+        logging.debug('Received response: ' + str(response.status_code))
 
     def patch(self, entity, patches):
         """
@@ -109,7 +119,7 @@ class BaseDao:
         if entity.id is None or entity.id == '':
             raise AttributeError('please provide an entity with a valid id')
         url.path.add(self.entity_path(entity.id))
-        logging.info(f'Patching to {url.url}')
+        logging.debug(f'Patching to {url.url}')
         headers = self.APPLICATION_JSON_PATCH
         if patches is None:
             raise ValueError('please provide a list of patches, either as a jsonpatch object or a '
@@ -123,32 +133,58 @@ class BaseDao:
         try:
             response = self.service.execute('patch', url, json=patches, headers=headers)
         except requests.exceptions.HTTPError as e:
+            error_text = e.response.text
+            try:
+                error_json = json.loads(error_text)
+                error_message = error_json['message']
+            except (json.JSONDecodeError, KeyError):
+                error_message = "unknown error message"
+            logging.error("Patching {} failed with status-code {}, {}".format(type(entity).__name__,
+                                                                            e.response.status_code,
+                                                                            error_message))
             raise e
-        logging.info(f'Received response: {str(response.status_code)}')
+        logging.debug(f'Received response: {str(response.status_code)}')
 
     def update(self, entity):
         url = furl(self.service.url)
         if entity.id is None or entity.id == '':
             raise AttributeError('please provide an entity with a valid id')
         url.path.add(self.entity_path(entity.id))
-        logging.info('Updating to {}'.format(url.url))
+        logging.debug('Updating to {}'.format(url.url))
         json_dict = frost_sta_client.utils.transform_entity_to_json_dict(entity)
         try:
             response = self.service.execute('put', url, json=json_dict)
         except requests.exceptions.HTTPError as e:
+            error_text = e.response.text
+            try:
+                error_json = json.loads(error_text)
+                error_message = error_json['message']
+            except (json.JSONDecodeError, KeyError):
+                error_message = "unknown error message"
+            logging.error("Updating {} failed with status-code {}, {}".format(type(entity).__name__,
+                                                                            e.response.status_code,
+                                                                            error_message))
             raise e
-        logging.info('Received response: {}'.format(str(response.status_code)))
+        logging.debug('Received response: {}'.format(str(response.status_code)))
 
     def find(self, id):
         url = furl(self.service.url)
         url.path.add(self.entity_path(id))
-        logging.info('Fetching: {}'.format(url.url))
+        logging.debug('Fetching: {}'.format(url.url))
         try:
             response = self.service.execute('get', url)
         except requests.exceptions.HTTPError as e:
-            print("Error " + str(e))
-            return
-        logging.info('Received response: {}'.format(response.status_code))
+            error_text = e.response.text
+            try:
+                error_json = json.loads(error_text)
+                error_message = error_json['message']
+            except (json.JSONDecodeError, KeyError):
+                error_message = "unknown error message"
+            logging.error("Finding {} failed with status-code {}, {}".format(id,
+                                                                            e.response.status_code,
+                                                                            error_message))
+            raise e
+        logging.debug('Received response: {}'.format(response.status_code))
         json_response = response.json()
         json_response['id'] = json_response['@iot.id']
         entity = frost_sta_client.utils.transform_json_to_entity(json_response, self.entity_class)
@@ -157,13 +193,21 @@ class BaseDao:
     def delete(self, entity):
         url = furl(self.service.url)
         url.path.add(self.entity_path(entity.id))
-        logging.info('Deleting: {}'.format(url.url))
+        logging.debug('Deleting: {}'.format(url.url))
         try:
             response = self.service.execute('delete', url)
         except requests.exceptions.HTTPError as e:
-            print("Error " + str(e))
-            return
-        logging.info('Received response: {}'.format(response.status_code))
+            error_text = e.response.text
+            try:
+                error_json = json.loads(error_text)
+                error_message = error_json['message']
+            except (json.JSONDecodeError, KeyError):
+                error_message = "unknown error message"
+            logging.error("Deleting {} failed with status-code {}, {}".format(type(entity).__name__,
+                                                                            e.response.status_code,
+                                                                            error_message))
+            raise e
+        logging.debug('Received response: {}'.format(response.status_code))
 
     def entity_path(self, id):
         return "{}({})".format(self.entitytype_plural, id)
