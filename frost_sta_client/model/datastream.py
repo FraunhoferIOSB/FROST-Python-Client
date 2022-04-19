@@ -13,6 +13,8 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import inspect
+import json
 
 import frost_sta_client.model.ext.unitofmeasurement
 from frost_sta_client.dao.datastream import DatastreamDao
@@ -143,14 +145,19 @@ class Datastream(entity.Entity):
     @observed_area.setter
     def observed_area(self, value):
         if value is None:
-            self._observed_area = None
+            self._location = None
             return
-        if isinstance(value, geojson.geometry.Polygon) or \
-           isinstance(value, geojson.geometry.Point) or \
-           isinstance(value, geojson.geometry.Geometry):
-            self._observed_area = geojson.dumps(value)
+        geo_classes = [obj for _, obj in inspect.getmembers(geojson) if inspect.isclass(obj) and
+                       obj.__module__ == 'geojson.geometry']
+        if type(value) in geo_classes:
+            self._observed_area = value
             return
-        raise ValueError('observedArea should be a geojson object')
+        else:
+            try:
+                json.dumps(value)
+            except TypeError:
+                raise ValueError('observedArea should be of json_serializable!')
+            self._observed_area = value
 
     @property
     def properties(self):
