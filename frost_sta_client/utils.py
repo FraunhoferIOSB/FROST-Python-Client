@@ -15,7 +15,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import jsonpickle
-import demjson3
 import datetime
 from dateutil.parser import isoparse
 import geojson
@@ -35,7 +34,7 @@ def transform_entity_to_json_dict(entity):
 def transform_json_to_entity(json_response, entity_class):
     decodable_str = '{\'py/object\': \'' + entity_class + '\', \'py/state\': ' \
                     + jsonpickle.encode(json_response, unpicklable=False) + '}'
-    return jsonpickle.decode(decodable_str, backend=demjson3)
+    return jsonpickle.decode(decodable_str)
 
 
 def transform_json_to_entity_list(json_response, entity_class):
@@ -47,8 +46,10 @@ def transform_json_to_entity_list(json_response, entity_class):
             entity_list.next_link = json_response.get("@iot.nextLink", None)
         except AttributeError as e:
             raise e
-    else:
+    elif isinstance(json_response, list):
         response_list = json_response
+    else:
+        raise ValueError("expected json as a dict or list to transform into entity list")
     for item in response_list:
         result_list.append(transform_json_to_entity(item, entity_list.entity_class))
     entity_list.entities = result_list
@@ -94,7 +95,6 @@ def parse_datetime(value) -> str:
         return value[0].isoformat() + value[1].isoformat()
     else:
         raise ValueError('time entities should consist of one or two datetimes')
-
 
 
 def process_area(value):
