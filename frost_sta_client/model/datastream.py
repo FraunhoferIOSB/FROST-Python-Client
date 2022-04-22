@@ -325,6 +325,9 @@ class Datastream(entity.Entity):
         if state.get("ObservedProperty", None) is not None:
             self.observed_property = frost_sta_client.model.observedproperty.ObservedProperty()
             self.observed_property.__setstate__(state["ObservedProperty"])
+        if state.get("Sensor", None) is not None:
+            self.sensor = frost_sta_client.model.sensor.Sensor()
+            self.sensor.__setstate__(state["Sensor"])
         if state.get("Observations", None) is not None and isinstance(state["Observations"], list):
             entity_class = entity_type.EntityTypes['Observation']['class']
             self.observations = utils.transform_json_to_entity_list(state['Observations'], entity_class)
