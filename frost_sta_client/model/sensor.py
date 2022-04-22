@@ -201,7 +201,7 @@ class Sensor(entity.Entity):
         self.name = state.get('name', '')
         self.description = state.get('description', '')
         self.encoding_type = state.get('encodingType', '')
-        self.meta_data = state.get('metadata', '')
+        self.metadata = state.get('metadata', '')
         self.properties = state.get('properties', {})
         if state.get('Datastreams', None) is not None:
             entity_class = entity_type.EntityTypes['Datastream']['class']
