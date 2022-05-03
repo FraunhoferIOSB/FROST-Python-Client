@@ -38,7 +38,7 @@ class Location(entity.Entity):
                  encoding_type='',
                  properties=None,
                  location=None,
-                 thing=None,
+                 things=None,
                  historical_locations=None,
                  **kwargs):
         super().__init__(**kwargs)
@@ -49,13 +49,13 @@ class Location(entity.Entity):
         self.encoding_type = encoding_type
         self.properties = properties
         self.location = location
-        self.thing = thing
+        self.things = things
         self.historical_locations = historical_locations
 
     def __new__(cls, *args, **kwargs):
         new_loc = super().__new__(cls)
         attributes = {'_id': None, '_name': '', '_description': '', '_properties': {}, '_encodingType': '',
-                      '_location': None, '_thing': None, '_historical_locations': None, '_self_link': '',
+                      '_location': None, '_things': None, '_historical_locations': None, '_self_link': '',
                       '_service': None}
         for key, value in attributes.items():
             new_loc.__dict__[key] = value
@@ -131,21 +131,26 @@ class Location(entity.Entity):
             try:
                 json.dumps(value)
             except TypeError:
-                raise ValueError('location should be of json_serializable!')
+                raise ValueError('location should be json serializable!')
             self._location = value
 
     @property
-    def thing(self):
-        return self._thing
+    def things(self):
+        return self._things
 
-    @thing.setter
-    def thing(self, value):
-        if value is None:
+    @things.setter
+    def things(self, values):
+        if values is None:
             self._thing = None
             return
-        if not isinstance(value, thing.Thing):
-            raise ValueError('thing should be of type Thing!')
-        self._thing = value
+        if isinstance(values, list) and all(isinstance(th, thing.Thing) for th in values):
+            entity_class = entity_type.EntityTypes['Thing']['class']
+            self._thing = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
+        if not isinstance(values, entity_list.EntityList) or \
+                any((not isinstance(th, thing.Thing)) for th in values.entities):
+            raise ValueError('Things should be a list of things!')
+        self._things = values
 
     @property
     def historical_locations(self):
@@ -166,8 +171,8 @@ class Location(entity.Entity):
         raise ValueError('historical_location should be of type HistoricalLocation!')
 
     def ensure_service_on_children(self, service):
-        if self.thing is not None:
-            self.thing.set_service(service)
+        if self.things is not None:
+            self.things.set_service(service)
         if self.historical_locations is not None:
             self.historical_locations.set_service(service)
 
@@ -203,8 +208,8 @@ class Location(entity.Entity):
             data['properties'] = self.properties
         if self.location is not None:
             data['location'] = self.location
-        if self.thing is not None:
-            data['Thing'] = self.thing
+        if self.things is not None:
+            data['Things'] = self.things
         if self.historical_locations is not None and len(self.historical_locations.entities) > 0:
             data['HistoricalLocation'] = self.historical_locations.__getstate__()
         return data
@@ -215,9 +220,10 @@ class Location(entity.Entity):
         self.description = state.get("description", None)
         self.encoding_type = state.get("encodingType", None)
         self.properties = state.get("properties", None)
-        if state.get("Thing", None) is not None:
-            self.thing = frost_sta_client.model.thing.Thing()
-            self.thing.__setstate__(state["Thing"])
+        if state.get("Things", None) is not None:
+            entity_class = entity_type.EntityTypes['Thing']['class']
+            self.things = utils.transform_json_to_entity_list(state['Things'], entity_class)
+            self.things.next_link = state.get('Things@iot.nextLink', None)
         if state.get("location", None) is not None:
             self.location = state["location"]
         if state.get("HistoricalLocations", None) is not None:
