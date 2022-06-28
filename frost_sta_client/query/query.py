@@ -126,9 +126,11 @@ class Query:
         return self
 
     # exception: similar functions in basedao
-    def list(self):
+    def list(self, callback=None, step_size=None):
         """
         Get an entity collection as a dictionary
+        callbacks so far only work in combination with step_size. If step_size is set, then the callback function
+        is called at every iteration of the step_size
         """
         url = furl(self.service.url)
         url.path.add(self.entitytype_plural)
@@ -147,4 +149,8 @@ class Query:
             raise ValueError('Cannot find json in http response')
         entity_list = frost_sta_client.utils.transform_json_to_entity_list(json_response, self.entity_class)
         entity_list.set_service(self.service)
+
+        entity_list.callback = callback
+        entity_list.step_size = step_size
+
         return entity_list

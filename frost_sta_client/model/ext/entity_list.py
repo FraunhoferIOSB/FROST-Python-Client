@@ -14,10 +14,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import frost_sta_client
 import logging
 import requests
-import json
+import frost_sta_client
 
 
 class EntityList:
@@ -30,21 +29,26 @@ class EntityList:
         self.service = None
         self.iterable_entities = None
         self.count = None
+        self.callback = None
+        self.step_size = None
 
     def __new__(cls, *args, **kwargs):
         new_entity_list = super().__new__(cls)
         attributes = {'_entities': None, '_entity_class': '', '_next_link': '', '_service': {}, '_count': '',
-                      '_iterable_entities': None}
+                      '_iterable_entities': None, '_callback': None,
+                      '_step_size': None}
         for key, value in attributes.items():
             new_entity_list.__dict__[key] = value
         return new_entity_list
 
     def __iter__(self):
-        self.iterable_entities = iter(self.entities)
+        self.iterable_entities = iter(enumerate(self.entities))
         return self
 
     def __next__(self):
-        next_entity = next(self.iterable_entities, None)
+        idx, next_entity = next(self.iterable_entities, (len(self.entities), None))
+        if self.step_size is not None and idx is not None and idx % self.step_size == 0:
+            self.callback(idx)
         if next_entity is not None:
             return next_entity
         if self.next_link is not None:
@@ -64,10 +68,9 @@ class EntityList:
             result_list = frost_sta_client.utils.transform_json_to_entity_list(json_response, self.entity_class)
             self.entities += result_list.entities
             self.next_link = json_response.get("@iot.nextLink", None)
-            self.iterable_entities = iter(self.entities[-len(result_list.entities):])
-            return next(self)
-        else:
-            raise StopIteration
+            self.iterable_entities = iter(enumerate(self.entities[-len(result_list.entities):], start=idx))
+            return next(self.iterable_entities)[1]
+        raise StopIteration
 
     def get(self, index):
         if not isinstance(index, int):
@@ -99,6 +102,26 @@ class EntityList:
             self._entities = values
             return
         raise ValueError('entities should be a list of entities')
+
+    @property
+    def callback(self):
+        return self._callback
+
+    @callback.setter
+    def callback(self, callback):
+        if callable(callback) or callback is None:
+            self._callback = callback
+
+    @property
+    def step_size(self):
+        return self._step_size
+
+    @step_size.setter
+    def step_size(self, value):
+        if isinstance(value, int) or value is None:
+            self._step_size = value
+            return
+        raise ValueError('step_size should be of type int')
 
     @property
     def next_link(self):

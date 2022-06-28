@@ -65,3 +65,29 @@ things_list = service.things().query().top(20).list()
 for thing in things_list.entities:
     print("my name is: {}".format(thing.name))
 ```
+### Callback function in `EntityList`
+The progress of the loading process can be tracked by supplying a callback function along with a step size. The callback
+function and the step size must both be provided to the `list` function (see example below).
+
+If a callback function and a step size are used, the callback function is called every time the step size is
+reached during the iteration within the for-loop. (Note that the callback function so far only works in
+combination with a for-loop).
+
+The callback function is called with one argument, which is the current index of the iteration.
+
+```
+def callback_func(loaded_entities):
+    print("loaded {} entities!".format(loaded_entities))
+
+service = fsc.SensorThingsService('example_url')
+
+things = service.things().query().list(callback=callback_func, step_size=5)
+for thing in things:
+    print(thing.name)
+```
+
+
+### Json (De)Serialization
+Since not all possible backends that are configurable in jsonpickle handle long floats equally, the backend json
+module is set to demjson3 per default. The backend can be modified by calling
+`jsonpickle.set_preferred_backend('name_of_preferred_backend')` anywhere in the code that uses the client.
