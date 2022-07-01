@@ -207,10 +207,12 @@ class Sensor(entity.Entity):
             entity_class = entity_type.EntityTypes['Datastream']['class']
             self.datastreams = utils.transform_json_to_entity_list(state['Datastreams'], entity_class)
             self.datastreams.next_link = state.get('Datastreams@iot.nextLink', None)
+            self.datastreams.count = state.get('Datastreams@iot.count', None)
         if state.get('MultiDatastreams', None) is not None:
             entity_class = entity_type.EntityTypes['MultiDatastream']['class']
             self.multi_datastreams = utils.transform_json_to_entity_list(state['MultiDatastreams'], entity_class)
             self.multi_datastreams.next_link = state.get('MultiDatastreams@iot.nextLink', None)
+            self.multi_datastreams.count = state.get('MultiDatastreams@iot.count', None)
 
     def get_dao(self, service):
         return SensorDao(service)

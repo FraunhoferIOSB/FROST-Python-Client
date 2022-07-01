@@ -224,12 +224,14 @@ class Location(entity.Entity):
             entity_class = entity_type.EntityTypes['Thing']['class']
             self.things = utils.transform_json_to_entity_list(state['Things'], entity_class)
             self.things.next_link = state.get('Things@iot.nextLink', None)
+            self.things.count = state.get('Things@iot.count', None)
         if state.get("location", None) is not None:
             self.location = state["location"]
         if state.get("HistoricalLocations", None) is not None:
             entity_class = entity_type.EntityTypes['HistoricalLocation']['class']
             self.historical_locations = utils.transform_json_to_entity_list(state['HistoricalLocations'], entity_class)
             self.historical_locations.next_link = state.get('HistoricalLocations@iot.nextLink', None)
+            self.historical_locations.count = state.get('HistoricalLocations@iot.count', None)
 
     def get_dao(self, service):
         return LocationDao(service)

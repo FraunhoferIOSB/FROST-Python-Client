@@ -44,6 +44,7 @@ def transform_json_to_entity_list(json_response, entity_class):
         try:
             response_list = json_response['value']
             entity_list.next_link = json_response.get("@iot.nextLink", None)
+            entity_list.count = json_response.get("@iot.count", None)
         except AttributeError as e:
             raise e
     elif isinstance(json_response, list):

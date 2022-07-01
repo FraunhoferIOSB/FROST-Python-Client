@@ -257,14 +257,17 @@ class Thing(entity.Entity):
             entity_class = entity_type.EntityTypes['Datastream']['class']
             self.datastreams = utils.transform_json_to_entity_list(state['Datastreams'], entity_class)
             self.datastreams.next_link = state.get("Datastreams@iot.nextLink", None)
+            self.datastreams.count = state.get("Datastreams@iot.count", None)
         if state.get("MultiDatastreams", None) is not None and isinstance(state["MultiDatastreams"], list):
             entity_class = entity_type.EntityTypes['MultiDatastream']['class']
             self.multi_datastreams = utils.transform_json_to_entity_list(state['MultiDatastreams'], entity_class)
             self.multi_datastreams.next_link = state.get("MultiDatastreams@iot.nextLink", None)
+            self.multi_datastreams.count = state.get("MultiDatastreams@iot.count", None)
         if state.get("TaskingCapabilities", None) is not None and isinstance(state["TaskingCapabilities"], list):
             entity_class = entity_type.EntityTypes['TaskingCapability']['class']
             self.tasking_capabilities = utils.transform_json_to_entity_list(state['TaskingCapabilities'], entity_class)
             self.tasking_capabilities.next_link = state.get("TaskingCapabilities@iot.nextLink", None)
+            self.tasking_capabilities.count = state.get("TaskingCapabilities@iot.count", None)
 
     def get_dao(self, service):
         return ThingDao(service)

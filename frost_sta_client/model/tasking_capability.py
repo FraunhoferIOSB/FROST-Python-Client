@@ -204,6 +204,7 @@ class TaskingCapability(entity.Entity):
             entity_class = entity_type.EntityTypes['Task']['class']
             self.tasks = utils.transform_json_to_entity_list(state['Tasks'], entity_class)
             self.tasks.next_link = state.get('Tasks@iot.nextLink', None)
+            self.tasks.count = state.get('Tasks@iot.count', None)
         if state.get('Actuator', None) is not None:
             self.actuator = frost_sta_client.model.actuator.Actuator()
             self.actuator.__setstate__(state['Actuator'])

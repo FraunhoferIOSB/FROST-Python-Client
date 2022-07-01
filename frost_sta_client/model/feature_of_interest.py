@@ -193,6 +193,7 @@ class FeatureOfInterest(entity.Entity):
             entity_class = entity_type.EntityTypes['Observation']['class']
             self.observations = utils.transform_json_to_entity_list(state['Observations'], entity_class)
             self.observations.next_link = state.get("Observations@iot.nextLink", None)
+            self.observations.count = state.get("Observations@iot.count", None)
 
     def get_dao(self, service):
         return frost_sta_client.dao.features_of_interest.FeaturesOfInterestDao(service)

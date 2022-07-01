@@ -180,6 +180,7 @@ class Actuator(entity.Entity):
             entity_class = entity_type.EntityTypes['TaskingCapability']['class']
             self.tasking_capabilities = utils.transform_json_to_entity_list(state['TaskingCapabilities'], entity_class)
             self.tasking_capabilities.next_link = state.get("TaskingCapabilities@iot.nextLink", None)
+            self.tasking_capabilities.count = state.get("TaskingCapabilities@iot.count", None)
 
     def get_dao(self, service):
         return ActuatorDao(service)
