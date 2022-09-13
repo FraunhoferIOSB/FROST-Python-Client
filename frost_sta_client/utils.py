@@ -111,4 +111,4 @@ def process_area(value):
         return geojson.geometry.Geometry(value["coordinates"])
     if value["type"] == "LineString":
         return geojson.geometry.LineString(value["coordinates"])
-    raise ValueError("can only handle geojson of type Point, Polygon or Geometry")
+    raise ValueError("can only handle geojson of type Point, Polygon, Geometry or LineString")
