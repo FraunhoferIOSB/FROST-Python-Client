@@ -72,7 +72,7 @@ class SensorThingsService:
 
     def get_path(self, parent, relation):
         if parent is None:
-            return relation.get_name
+            return relation
         this_entity_type = entity_type.get_list_for_class(type(parent))
         return "{entity_type}({id})/{relation}".format(entity_type=this_entity_type, id=parent.id, relation=relation)
 
