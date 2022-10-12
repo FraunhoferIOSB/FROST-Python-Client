@@ -139,6 +139,11 @@ class FeatureOfInterest(entity.Entity):
             raise TypeError('feature should be json serializable')
         self._feature = value
 
+    def get_observations(self):
+        result = self.service.observations()
+        result.parent = self
+        return result
+
     def ensure_service_on_children(self, service):
         if self.observations is not None:
             self.observations.set_service(service)

@@ -75,8 +75,9 @@ class Datastream(entity.Entity):
         self.result_time = result_time
         self.thing = thing
         self.sensor = sensor
-        self.observed_property = observed_property
         self.observations = observations
+        self.observed_property = observed_property
+
 
     def __new__(cls, *args, **kwargs):
         new_datastream = super().__new__(cls)
@@ -239,6 +240,11 @@ class Datastream(entity.Entity):
             self._observations = values
             return
         raise ValueError('Observations should be a list of Observations')
+
+    def get_observations(self):
+        result = self.service.observations()
+        result.parent = self
+        return result
 
     def ensure_service_on_children(self, service):
         if self.thing is not None:

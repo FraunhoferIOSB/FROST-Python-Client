@@ -84,6 +84,11 @@ class HistoricalLocation(entity.Entity):
             return
         raise ValueError('thing should be of type Thing!')
 
+    def get_locations(self):
+        result = self.service.locations()
+        result.parent = self
+        return result
+
     def ensure_service_on_children(self, service):
         if self.locations is not None:
             self.locations.set_service(service)

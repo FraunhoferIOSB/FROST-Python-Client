@@ -42,6 +42,7 @@ class BaseDao:
         self.entitytype = entitytype["singular"]
         self.entitytype_plural = entitytype["plural"]
         self.entity_class = entitytype["class"]
+        self.parent = None
 
     @property
     def service(self):
@@ -86,6 +87,14 @@ class BaseDao:
             self._entity_class = value
             return
         raise ValueError('entity_class should be of type string')
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @parent.setter
+    def parent(self, value):
+        self._parent = value
 
     def create(self, entity):
         url = furl(self.service.url)
@@ -172,6 +181,7 @@ class BaseDao:
         json_response = response.json()
         json_response['id'] = json_response['@iot.id']
         entity = frost_sta_client.utils.transform_json_to_entity(json_response, self.entity_class)
+        entity.service = self.service
         return entity
 
     def delete(self, entity):
@@ -193,4 +203,5 @@ class BaseDao:
         return "{}({})".format(self.entitytype_plural, id)
 
     def query(self):
-        return frost_sta_client.query.query.Query(self.service, self.entitytype, self.entitytype_plural, self.entity_class)
+        return frost_sta_client.query.query.Query(self.service, self.entitytype, self.entitytype_plural,
+                                                  self.entity_class, self.parent)

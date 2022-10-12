@@ -141,6 +141,16 @@ class ObservedProperty(entity.Entity):
             raise ValueError('multi_datastreams should be a list of multi_datastreams!')
         self._multi_datastreams = values
 
+    def get_datastreams(self):
+        result = self.service.datastreams()
+        result.parent = self
+        return result
+
+    def get_multi_datastreams(self):
+        result = self.service.multi_datastreams()
+        result.parent = self
+        return result
+
     def ensure_service_on_children(self, service):
         if self.datastreams is not None:
             self.datastreams.set_service(service)

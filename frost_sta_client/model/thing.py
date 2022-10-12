@@ -189,6 +189,31 @@ class Thing(entity.Entity):
             raise ValueError('Tasking capabilities should be a list of TaskingCapabilities')
         self._tasking_capabilities = values
 
+    def get_datastreams(self):
+        result = self.service.datastreams()
+        result.parent = self
+        return result
+
+    def get_multi_datastreams(self):
+        result = self.service.multi_datastreams()
+        result.parent = self
+        return result
+
+    def get_locations(self):
+        result = self.service.locations()
+        result.parent = self
+        return result
+
+    def get_historical_locations(self):
+        result = self.service.historical_locations()
+        result.parent = self
+        return result
+
+    def get_tasking_capabilities(self):
+        result = self.service.tasking_capabilities()
+        result.parent = self
+        return result
+
     def ensure_service_on_children(self, service):
         if self.locations is not None:
             self.locations.set_service(service)

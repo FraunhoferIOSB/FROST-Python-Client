@@ -15,9 +15,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import requests
+from furl import furl
+import logging
 
 from frost_sta_client.dao import *
 from frost_sta_client.service import auth_handler
+from frost_sta_client.model.ext import entity_type
 
 
 class SensorThingsService:
@@ -25,6 +28,22 @@ class SensorThingsService:
     def __init__(self, url, auth_handler=None):
         self.url = url
         self.auth_handler = auth_handler
+
+    @property
+    def url(self):
+        return self._url
+
+    @url.setter
+    def url(self, value):
+        if value is None:
+            self._url = value
+            return
+        try:
+            self._url = furl(value)
+        except ValueError as e:
+            logging.error("received invalid url")
+            raise e
+
 
     @property
     def auth_handler(self):
@@ -51,6 +70,17 @@ class SensorThingsService:
 
         return response
 
+    def get_path(self, parent, relation):
+        if parent is None:
+            return relation.get_name
+        this_entity_type = entity_type.get_list_for_class(type(parent))
+        return "{entity_type}({id})/{relation}".format(entity_type=this_entity_type, id=parent.id, relation=relation)
+
+    def get_full_path(self, parent, relation):
+        slash = "" if self.url.pathstr[-1] == '/' else "/"
+        url = self.url.url + slash + self.get_path(parent, relation)
+        return furl(url)
+
     def create(self, entity):
         entity.get_dao(self).create(entity)
 
@@ -72,7 +102,7 @@ class SensorThingsService:
     def features_of_interest(self):
         return features_of_interest.FeaturesOfInterestDao(self)
 
-    def historical_location(self):
+    def historical_locations(self):
         return historical_location.HistoricalLocationDao(self)
 
     def locations(self):

@@ -170,6 +170,16 @@ class Location(entity.Entity):
             self._historical_locations = values
         raise ValueError('historical_location should be of type HistoricalLocation!')
 
+    def get_things(self):
+        result = self.service.things()
+        result.parent = self
+        return result
+
+    def get_historical_locations(self):
+        result = self.service.historical_locations()
+        result.parent = self
+        return result
+
     def ensure_service_on_children(self, service):
         if self.things is not None:
             self.things.set_service(service)

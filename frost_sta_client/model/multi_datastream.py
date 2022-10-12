@@ -238,6 +238,16 @@ class MultiDatastream(entity.Entity):
             raise ValueError('Observations should be an entity list of Observations')
         self._observations = values
 
+    def get_observations(self):
+        result = self.service.observations()
+        result.parent = self
+        return result
+
+    def get_observed_properties(self):
+        result = self.service.observed_properties()
+        result.parent = self
+        return result
+
     def ensure_service_on_children(self, service):
         if self.thing is not None:
             self.thing.set_service(service)

@@ -24,12 +24,13 @@ import requests
 
 
 class Query:
-    def __init__(self, service, entity, entitytype_plural, entity_class):
+    def __init__(self, service, entity, entitytype_plural, entity_class, parent):
         self.service = service
         self.entity = entity
         self.entitytype_plural = entitytype_plural
         self.entity_class = entity_class
         self.params = {}
+        self.parent = parent
 
     @property
     def service(self):
@@ -76,6 +77,14 @@ class Query:
             self._entity_class = value
             return
         raise ValueError('entity_class should be of type string')
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @parent.setter
+    def parent(self, value):
+        self._parent = value
 
     def remove_all_params(self, key):
         self.params.pop(key, None)
@@ -132,8 +141,7 @@ class Query:
         callbacks so far only work in combination with step_size. If step_size is set, then the callback function
         is called at every iteration of the step_size
         """
-        url = furl(self.service.url)
-        url.path.add(self.entitytype_plural)
+        url = self.service.get_full_path(self.parent, self.entitytype_plural)
         url.args = self.params
         try:
             response = self.service.execute('get', url)

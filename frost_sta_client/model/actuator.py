@@ -125,6 +125,11 @@ class Actuator(entity.Entity):
             raise ValueError('Tasking capabilities should be a list of TaskingCapabilities')
         self._tasking_capabilities = values
 
+    def get_tasking_capabilities(self):
+        result = self.service.tasking_capabilities()
+        result.parent = self
+        return result
+
     def ensure_service_on_children(self, service):
         if self.tasking_capabilities is not None:
             self.tasking_capabilities.set_service(service)

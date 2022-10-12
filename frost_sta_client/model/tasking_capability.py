@@ -146,6 +146,11 @@ class TaskingCapability(entity.Entity):
             raise ValueError('actuator should be of type Actuator!')
         self._actuator = value
 
+    def get_tasks(self):
+        result = self.service.tasks()
+        result.parent = self
+        return result
+
     def ensure_service_on_children(self, service):
         if self.actuator is not None:
             self.actuator.set_service(service)
