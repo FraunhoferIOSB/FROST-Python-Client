@@ -98,3 +98,11 @@ EntityTypes = {
         'class': 'frost_sta_client.model.ext.entity_list.EntityList'
     }
 }
+
+list_for_class = {}
+for key, entity_type in EntityTypes.items():
+    list_for_class[entity_type["class"]] = entity_type["plural"]
+
+def get_list_for_class(clazz):
+    clazz_name = clazz.__module__ + "." + clazz.__name__
+    return list_for_class[clazz_name]
