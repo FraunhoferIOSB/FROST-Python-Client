@@ -29,18 +29,18 @@ from .ext import entity_type
 class HistoricalLocation(entity.Entity):
 
     def __init__(self,
-                 locations=None,
+                 location=None,
                  time=None,
                  thing=None,
                  **kwargs):
         super().__init__(**kwargs)
-        self.locations = locations
+        self.location = location
         self.time = time
         self.thing = thing
 
     def __new__(cls, *args, **kwargs):
         new_h_loc = super().__new__(cls)
-        attributes = {'_id': None, '_locations': None, '_time': None, '_thing': None, '_self_link': None,
+        attributes = {'_id': None, '_location': None, '_time': None, '_thing': None, '_self_link': None,
                       '_service': None}
         for key, value in attributes.items():
             new_h_loc.__dict__[key] = value
@@ -55,23 +55,15 @@ class HistoricalLocation(entity.Entity):
         self._time = utils.check_datetime(value, 'time')
 
     @property
-    def locations(self):
-        return self._locations
+    def location(self):
+        return self._location
 
-    @locations.setter
-    def locations(self, values):
-        if values is None:
-            self._locations = None
+    @location.setter
+    def location(self, value):
+        if value is None or isinstance(value, location.Location):
+            self._location = value
             return
-        if isinstance(values, list) and all(isinstance(loc, location.Location) for loc in values):
-            entity_class = entity_type.EntityTypes['Location']['class']
-            self._locations = entity_list.EntityList(entity_class=entity_class, entities=values)
-            return
-        if isinstance(values, entity_list.EntityList) and\
-                all((isinstance(loc, location.Location)) for loc in values.entities):
-            self._locations = values
-            return
-        raise ValueError('locations should be a list of locations!')
+        raise ValueError("location should be of type Location!")
 
     @property
     def thing(self):
@@ -83,11 +75,6 @@ class HistoricalLocation(entity.Entity):
             self._thing = value
             return
         raise ValueError('thing should be of type Thing!')
-
-    def get_locations(self):
-        result = self.service.locations()
-        result.parent = self
-        return result
 
     def ensure_service_on_children(self, service):
         if self.locations is not None:
@@ -127,11 +114,9 @@ class HistoricalLocation(entity.Entity):
         if state.get("Thing", None) is not None:
             self.thing = frost_sta_client.model.thing.Thing()
             self.thing.__setstate__(state["Thing"])
-        if state.get("Locations", None) is not None and isinstance(state["Locations"], list):
-            entity_class = entity_type.EntityTypes['Location']['class']
-            self.locations = utils.transform_json_to_entity_list(state['Locations'], entity_class)
-            self.locations.next_link = state.get('Locations@iot.nextLink', None)
-            self.locations.count = state.get('Locations@iot.count', None)
+        if state.get("Location", None) is not None:
+            self.thing = frost_sta_client.model.location.Location()
+            self.thing.__setstate__(state["Location"])
 
     def get_dao(self, service):
         return HistoricalLocationDao(service)

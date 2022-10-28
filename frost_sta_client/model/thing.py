@@ -274,10 +274,12 @@ class Thing(entity.Entity):
             entity_class = entity_type.EntityTypes['Location']['class']
             self.locations = utils.transform_json_to_entity_list(state['Locations'], entity_class)
             self.locations.next_link = state.get("Locations@iot.nextLink", None)
+            self.locations.count = state.get("Locations@iot.count", None)
         if state.get("HistoricalLocations", None) is not None and isinstance(state["HistoricalLocations"], list):
             entity_class = entity_type.EntityTypes['HistoricalLocation']['class']
             self.historical_locations = utils.transform_json_to_entity_list(state['HistoricalLocations'], entity_class)
             self.historical_locations.next_link = state.get("HistoricalLocations@iot.nextLink", None)
+            self.historical_locations.count = state.get("HistoricalLocations@iot.count", None)
         if state.get("Datastreams", None) is not None and isinstance(state["Datastreams"], list):
             entity_class = entity_type.EntityTypes['Datastream']['class']
             self.datastreams = utils.transform_json_to_entity_list(state['Datastreams'], entity_class)
