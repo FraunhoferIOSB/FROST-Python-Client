@@ -334,9 +334,9 @@ class Datastream(entity.Entity):
         if state.get("Sensor", None) is not None:
             self.sensor = frost_sta_client.model.sensor.Sensor()
             self.sensor.__setstate__(state["Sensor"])
-        if state.get("Observations", None) is not None and type(state["Observations"] == str):
+        if state.get("Observations", None) is not None and isinstance(state["Observations"], list):
             entity_class = entity_type.EntityTypes['Observation']['class']
-            self.observations = utils.transform_related_json_to_entity_list(state['Observations'], entity_class)
+            self.observations = utils.transform_json_to_entity_list(state['Observations'], entity_class)
             self.observations.next_link = state.get("Observations@iot.nextLink", None)
             self.observations.count = state.get("Observations@iot.count", None)
 
