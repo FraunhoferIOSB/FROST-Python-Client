@@ -19,6 +19,10 @@ from frost_sta_client.model.thing import Thing
 from frost_sta_client.model.ext.unitofmeasurement import UnitOfMeasurement
 from frost_sta_client.service.sensorthingsservice import SensorThingsService
 from frost_sta_client.service.auth_handler import AuthHandler
+from frost_sta_client.model.ext.entity_type import EntityTypes
+from frost_sta_client.model.ext.entity_list import EntityList
+from frost_sta_client.model.ext.data_array_value import DataArrayValue
+from frost_sta_client.model.ext.data_array_document import DataArrayDocument
 
 import jsonpickle
 
