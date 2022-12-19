@@ -16,11 +16,37 @@
 
 from frost_sta_client.dao import base
 from frost_sta_client.model.ext.entity_type import EntityTypes
+from frost_sta_client.utils import transform_entity_to_json_dict
+import frost_sta_client
+
+import logging
+import requests
+import json
+
 
 
 class ObservationDao(base.BaseDao):
+    CREATE_OBSERVATIONS = "CreateObservations"
+
     def __init__(self, service):
         """
         A data access object for operations with the Observation entity
         """
         base.BaseDao.__init__(self, service, EntityTypes["Observation"])
+
+    def create(self, data_array):
+        url = self.service.url
+        url.path.add(self.CREATE_OBSERVATIONS)
+        logging.debug('Posting to ' + str(url.url))
+        json_dict = transform_entity_to_json_dict(data_array.value)
+        try:
+            response = self.service.execute('post', url, json=json_dict)
+        except requests.exceptions.HTTPError as e:
+            error_json = e.response.json()
+            error_message = error_json['message']
+            logging.error("Creating {} failed with status-code {}, {}".format("Data Array",
+                                                                              e.response.status_code,
+                                                                              error_message))
+        response_text_as_list = json.loads(response.text)
+        result = [frost_sta_client.model.observation.Observation(self_link=link) for link in response_text_as_list]
+        return result

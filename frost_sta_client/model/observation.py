@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
+import datetime
 
 import frost_sta_client.model
 from . import entity
@@ -69,6 +70,13 @@ class Observation(entity.Entity):
     @phenomenon_time.setter
     def phenomenon_time(self, value):
         self._phenomenon_time = utils.check_datetime(value, 'phenomenon_time')
+
+    def phenomenon_time_as_str(self):
+        if type(self._phenomenon_time) == str or self._phenomenon_time is None:
+            return self._phenomenon_time
+        if type(self._phenomenon_time) == datetime.datetime:
+            return self._phenomenon_time.isoformat()
+        return None
 
     @property
     def result(self):

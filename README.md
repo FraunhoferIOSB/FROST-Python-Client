@@ -65,6 +65,15 @@ things_list = service.things().query().top(20).list()
 for thing in things_list.entities:
     print("my name is: {}".format(thing.name))
 ```
+
+### Queries to related entity lists
+
+For example the Observations of a given Datastream can be queried via
+```
+datastream = service.datastreams().find(1)
+observations_list = datastream.get_observations().query().filter("result gt 10").list()
+```
+
 ### Callback function in `EntityList`
 The progress of the loading process can be tracked by supplying a callback function along with a step size. The callback
 function and the step size must both be provided to the `list` function (see example below).
@@ -86,6 +95,35 @@ for thing in things:
     print(thing.name)
 ```
 
+### DataArrays
+DataArrays can be used to make the creation of Observations easier, because with an DataArray only one HTTP Request
+has to be created.
+
+An example usage looks as follows:
+```
+    import frost_sta_client as fsc
+    
+    service = fsc.SensorThingsService("exampleserver.com/FROST-Server/v1.1")
+    dav = fsc.model.ext.data_array_value.DataArrayValue()
+    datastream = service.datastreams().find(1)
+    foi = service.feature_of_interest().find(1)
+    components = {dav.Property.PHENOMENON_TIME, dav.Property.RESULT, dav.Property.FEATURE_OF_INTEREST}
+    dav.components = components
+    dav.datastream = datastream
+    obs1 = fsc.Observation(result=3,
+                           phenomenon_time='2022-12-19T10:00:00Z',
+                           datastream=datastream,
+                           feature_of_interest=foi)
+    obs2 = fsc.Observation(result=5,
+                           phenomenon_time='2022-12-19T17:00:00Z',
+                           datastream=datastream,
+                           feature_of_interest=foi)
+    dav.add_observation(obs1)
+    dav.add_observation(obs2)
+    dad = fsc.model.ext.data_array_document.DataArrayDocument()
+    dad.add_data_array_value(dav)
+    result_list = service.observations().create(dad)
+```
 
 ### Json (De)Serialization
 Since not all possible backends that are configurable in jsonpickle handle long floats equally, the backend json
