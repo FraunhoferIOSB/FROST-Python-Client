@@ -1,4 +1,4 @@
-jsonpickle
+jsonpickle<=2.2.0
 demjson3
 requests
 furl
