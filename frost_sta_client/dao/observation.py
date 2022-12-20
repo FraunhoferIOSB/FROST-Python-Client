@@ -35,7 +35,7 @@ class ObservationDao(base.BaseDao):
         base.BaseDao.__init__(self, service, EntityTypes["Observation"])
 
     def create(self, data_array):
-        url = self.service.url
+        url = self.service.url.copy()
         url.path.add(self.CREATE_OBSERVATIONS)
         logging.debug('Posting to ' + str(url.url))
         json_dict = transform_entity_to_json_dict(data_array.value)

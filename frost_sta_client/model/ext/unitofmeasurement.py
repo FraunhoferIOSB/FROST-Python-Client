@@ -29,9 +29,10 @@ class UnitOfMeasurement:
 
     @name.setter
     def name(self, value):
-        if not isinstance(value, str):
-            raise ValueError('name should be of type str!')
-        self._name = value
+        if isinstance(value, str) or value is None:
+            self._name = value
+            return
+        raise ValueError('name should be of type str!')
 
     @property
     def symbol(self):
@@ -39,9 +40,10 @@ class UnitOfMeasurement:
 
     @symbol.setter
     def symbol(self, value):
-        if not isinstance(value, str):
-            raise ValueError('symbol should be of type str!')
-        self._symbol = value
+        if isinstance(value, str) or value is None:
+            self._symbol = value
+            return
+        raise ValueError('symbol should be of type str!')
 
     @property
     def definition(self):
@@ -49,9 +51,10 @@ class UnitOfMeasurement:
 
     @definition.setter
     def definition(self, value):
-        if not isinstance(value, str):
-            raise ValueError('definition should be of type str!')
-        self._definition = value
+        if isinstance(value, str) or value is None:
+            self._definition = value
+            return
+        raise ValueError('definition should be of type str!')
 
     def __getstate__(self):
         data = {
