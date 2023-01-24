@@ -98,8 +98,6 @@ class HistoricalLocation(entity.Entity):
 
     def __getstate__(self):
         data = super().__getstate__()
-        if data.get('@iot.id', None) is not None:
-            return data
         if self.time is not None:
             data['Time'] = utils.parse_datetime(self.time)
         if self.thing is not None:

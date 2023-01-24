@@ -244,8 +244,6 @@ class Thing(entity.Entity):
 
     def __getstate__(self):
         data = super().__getstate__()
-        if data.get('@iot.id', None) is not None:
-            return data
         if self.name is not None and self.name != '':
             data['name'] = self.name
         if self.description is not None and self.description != '':

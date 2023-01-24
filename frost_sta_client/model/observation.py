@@ -211,8 +211,6 @@ class Observation(entity.Entity):
 
     def __getstate__(self):
         data = super().__getstate__()
-        if data.get('@iot.id', None) is not None:
-            return data
         if self.parameters is not None and self.parameters != {}:
             data['parameters'] = self.parameters
         if self.result is not None:

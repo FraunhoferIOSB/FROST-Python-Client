@@ -97,8 +97,6 @@ class Task(entity.Entity):
 
     def __getstate__(self):
         data = super().__getstate__()
-        if data.get('@iot.id', None) is not None:
-            return data
         if self.tasking_parameters is not None and self.tasking_parameters != {}:
             data['taskingParameters'] = self.tasking_parameters
         if self.creation_time is not None:
