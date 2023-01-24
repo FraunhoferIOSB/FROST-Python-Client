@@ -67,6 +67,7 @@ class EntityList:
 
             result_list = frost_sta_client.utils.transform_json_to_entity_list(json_response, self.entity_class)
             self.entities += result_list.entities
+            self.set_service(self.service)
             self.next_link = json_response.get("@iot.nextLink", None)
             self.iterable_entities = iter(enumerate(self.entities[-len(result_list.entities):], start=idx))
             return next(self.iterable_entities)[1]
@@ -146,10 +147,9 @@ class EntityList:
         raise ValueError('service should be of type SensorThingsService')
 
     def set_service(self, service):
-        if self.service != service:
-            self.service = service
-            for entity in self.entities:
-                entity.set_service(service)
+        self.service = service
+        for entity in self.entities:
+            entity.set_service(service)
 
     def __getstate__(self):
         data = []
