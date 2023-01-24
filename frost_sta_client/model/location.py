@@ -141,11 +141,11 @@ class Location(entity.Entity):
     @things.setter
     def things(self, values):
         if values is None:
-            self._thing = None
+            self._things = None
             return
         if isinstance(values, list) and all(isinstance(th, thing.Thing) for th in values):
             entity_class = entity_type.EntityTypes['Thing']['class']
-            self._thing = entity_list.EntityList(entity_class=entity_class, entities=values)
+            self._things = entity_list.EntityList(entity_class=entity_class, entities=values)
             return
         if not isinstance(values, entity_list.EntityList) or \
                 any((not isinstance(th, thing.Thing)) for th in values.entities):
