@@ -36,7 +36,8 @@ def class_from_string(string):
     return getattr(sys.modules[module_name], class_name)
 
 def transform_json_to_entity(json_response, entity_class):
-    obj = entity_class()
+    cl = class_from_string(entity_class)
+    obj = cl()
     obj.__setstate__(json_response)
     return obj
 
@@ -54,8 +55,7 @@ def transform_json_to_entity_list(json_response, entity_class):
         response_list = json_response
     else:
         raise ValueError("expected json as a dict or list to transform into entity list")
-    ent_cl = class_from_string(entity_list.entity_class)
-    entity_list.entities = [transform_json_to_entity(item, ent_cl) for item in response_list]
+    entity_list.entities = [transform_json_to_entity(item, entity_list.entity_class) for item in response_list]
     return entity_list
 
 
