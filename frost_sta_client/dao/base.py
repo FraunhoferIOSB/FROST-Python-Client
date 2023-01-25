@@ -200,7 +200,9 @@ class BaseDao:
         logging.debug('Received response: {}'.format(response.status_code))
 
     def entity_path(self, id):
-        return "{}({})".format(self.entitytype_plural, id)
+        if isinstance(id, int):
+            return "{}({})".format(self.entitytype_plural, id)
+        return "{}('{}')".format(self.entitytype_plural, id)
 
     def query(self):
         return frost_sta_client.query.query.Query(self.service, self.entitytype, self.entitytype_plural,
