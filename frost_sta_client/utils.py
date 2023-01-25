@@ -24,8 +24,11 @@ import frost_sta_client.model.ext.entity_list
 
 
 def extract_value(location):
-    return location[location.find('(')+1: location.find(')')]
-
+    try:
+        value = int(location[location.find('(')+1: location.find(')')])
+    except ValueError:
+        value = str(location[location.find('(')+2: location.find(')')-1])
+    return value
 
 def transform_entity_to_json_dict(entity):
     json_str = jsonpickle.encode(entity, unpicklable=False)

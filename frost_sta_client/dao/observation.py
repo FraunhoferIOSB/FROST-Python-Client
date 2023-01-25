@@ -34,19 +34,23 @@ class ObservationDao(base.BaseDao):
         """
         base.BaseDao.__init__(self, service, EntityTypes["Observation"])
 
-    def create(self, data_array):
-        url = self.service.url.copy()
-        url.path.add(self.CREATE_OBSERVATIONS)
-        logging.debug('Posting to ' + str(url.url))
-        json_dict = transform_entity_to_json_dict(data_array.value)
-        try:
-            response = self.service.execute('post', url, json=json_dict)
-        except requests.exceptions.HTTPError as e:
-            error_json = e.response.json()
-            error_message = error_json['message']
-            logging.error("Creating {} failed with status-code {}, {}".format("Data Array",
+    def create(self, entity):
+        if isinstance(entity, frost_sta_client.model.observation.Observation):
+            super().create(entity)
+        else:
+            # entity is probably a data array
+            url = self.service.url.copy()
+            url.path.add(self.CREATE_OBSERVATIONS)
+            logging.debug('Posting to ' + str(url.url))
+            json_dict = transform_entity_to_json_dict(entity.value)
+            try:
+                response = self.service.execute('post', url, json=json_dict)
+            except requests.exceptions.HTTPError as e:
+                error_json = e.response.json()
+                error_message = error_json['message']
+                logging.error("Creating {} failed with status-code {}, {}".format("Data Array",
                                                                               e.response.status_code,
                                                                               error_message))
-        response_text_as_list = json.loads(response.text)
-        result = [frost_sta_client.model.observation.Observation(self_link=link) for link in response_text_as_list]
-        return result
+            response_text_as_list = json.loads(response.text)
+            result = [frost_sta_client.model.observation.Observation(self_link=link) for link in response_text_as_list]
+            return result

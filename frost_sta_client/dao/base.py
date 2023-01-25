@@ -110,7 +110,7 @@ class BaseDao:
                                                                             e.response.status_code,
                                                                             error_message))
             raise e
-        entity.id = int(frost_sta_client.utils.extract_value(response.headers['location']))
+        entity.id = frost_sta_client.utils.extract_value(response.headers['location'])
         entity.service = self.service
         logging.debug('Received response: ' + str(response.status_code))
 

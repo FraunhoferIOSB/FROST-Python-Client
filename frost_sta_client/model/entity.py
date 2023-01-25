@@ -42,7 +42,7 @@ class Entity(ABC):
         if isinstance(value, int) or isinstance(value, str):
             self._id = value
             return
-        raise ValueError('id of entity should be of type int!')
+        raise ValueError('id of entity should be of type int or str!')
 
     @property
     def self_link(self):
