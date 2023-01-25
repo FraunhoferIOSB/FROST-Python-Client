@@ -17,10 +17,10 @@
 import frost_sta_client.utils
 import frost_sta_client.model.ext.entity_list
 
-from furl import furl
+
 import logging
-import json
 import requests
+from requests.exceptions import JSONDecodeError
 
 
 class Query:
@@ -153,7 +153,7 @@ class Query:
         logging.debug('Received response: {} from {}'.format(response.status_code, url))
         try:
             json_response = response.json()
-        except ValueError:
+        except JSONDecodeError:
             raise ValueError('Cannot find json in http response')
         entity_list = frost_sta_client.utils.transform_json_to_entity_list(json_response, self.entity_class)
         entity_list.set_service(self.service)
