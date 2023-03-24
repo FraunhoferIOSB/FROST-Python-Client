@@ -26,7 +26,7 @@ service = fsc.SensorThingsService(url)
 from geojson import Point
 
 point = Point((-115.81, 37.24))
-location = fsc.Location(name="here", description="and there", location=point)
+location = fsc.Location(name="here", description="and there", location=point, encoding_type='application/geo+json')
  
 thing = fsc.Thing(name='new thing',
               description='I am a thing with a location',
