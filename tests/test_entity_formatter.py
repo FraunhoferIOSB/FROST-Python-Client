@@ -53,6 +53,44 @@ class TestEntityFormatter(unittest.TestCase):
         entity_json = frost_sta_client.utils.transform_entity_to_json_dict(entity)
         self.assertDictEqual(result, entity_json)
 
+
+    def test_write_thing_with_specified_id_and_attributes(self):
+        result = {'@iot.id': 123,
+                  'name': 'another nice thing',
+                  'Locations': [
+                      {
+                          '@iot.id': 456,
+                          'name': 'location with specified id'
+                      }
+                  ],
+                  'HistoricalLocations': [
+                      {
+                          '@iot.id': 789
+                      }
+                  ],
+                  'Datastreams': [
+                      {
+                          'name': 'Datastream without specified id'
+                      }
+                  ],
+                  }
+        entity = frost_sta_client.model.thing.Thing(id=123)
+        entity.name = 'another nice thing'
+
+        location = frost_sta_client.model.location.Location(name='location with specified id')
+        location.id = 456
+        historical_location = frost_sta_client.model.historical_location.HistoricalLocation(id=789)
+        datastream = frost_sta_client.model.datastream.Datastream(name='Datastream without specified id')
+
+        entity.locations = frost_sta_client.model.ext.entity_list.EntityList(entities=[location],
+                                                                             entity_class=entity_type.EntityTypes['Location']['class'])
+        entity.historical_locations = frost_sta_client.model.ext.entity_list.EntityList(entities=[historical_location],
+                                                                             entity_class=entity_type.EntityTypes['HistoricalLocation']['class'])
+        entity.datastreams = frost_sta_client.model.ext.entity_list.EntityList(entities=[datastream], entity_class=entity_type.EntityTypes['Datastream']['class'])
+        entity_json = frost_sta_client.utils.transform_entity_to_json_dict(entity)
+        self.assertDictEqual(result, entity_json)
+
+
     def test_incorrect_collection(self):
         exp_result = {
             'name': 'test thing',
