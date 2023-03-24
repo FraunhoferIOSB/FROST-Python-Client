@@ -29,12 +29,12 @@ from .ext import entity_type
 class HistoricalLocation(entity.Entity):
 
     def __init__(self,
-                 location=None,
+                 locations=None,
                  time=None,
                  thing=None,
                  **kwargs):
         super().__init__(**kwargs)
-        self.location = location
+        self.locations = locations
         self.time = time
         self.thing = thing
 
@@ -55,15 +55,23 @@ class HistoricalLocation(entity.Entity):
         self._time = utils.check_datetime(value, 'time')
 
     @property
-    def location(self):
-        return self._location
+    def locations(self):
+        return self._locations
 
-    @location.setter
-    def location(self, value):
-        if value is None or isinstance(value, location.Location):
-            self._location = value
+    @locations.setter
+    def locations(self, values):
+        if values is None:
+            self._locations = None
             return
-        raise ValueError("location should be of type Location!")
+        if isinstance(values, list) and all(isinstance(loc, location.Location) for loc in values):
+            entity_class = entity_type.EntityTypes['Location']['class']
+            self._locations = entity_list.EntityList(entity_class=entity_class, entities=values)
+            return
+        if not isinstance(values, entity_list.EntityList) or \
+                any((not isinstance(loc, location.Location)) for loc in values.entities):
+            raise ValueError('locations should be a list of locations')
+        self._locations = values
+
 
     @property
     def thing(self):
@@ -112,9 +120,12 @@ class HistoricalLocation(entity.Entity):
         if state.get("Thing", None) is not None:
             self.thing = frost_sta_client.model.thing.Thing()
             self.thing.__setstate__(state["Thing"])
-        if state.get("Location", None) is not None:
-            self.thing = frost_sta_client.model.location.Location()
-            self.thing.__setstate__(state["Location"])
+        if state.get("Locations", None) is not None and isinstance(state["Locations"], list):
+            entity_class = entity_type.EntityTypes['Location']['class']
+            self.locations = utils.transform_json_to_entity_list(state['Locations'], entity_class)
+            self.locations.next_link = state.get("Locations@iot.nextLink", None)
+            self.locations.count = state.get("Locations@iot.count", None)
+
 
     def get_dao(self, service):
         return HistoricalLocationDao(service)
