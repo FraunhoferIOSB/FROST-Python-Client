@@ -68,10 +68,10 @@ class MultiDatastream(entity.Entity):
 
     def __new__(cls, *args, **kwargs):
         new_mds = super().__new__(cls)
-        attributes = {'_id': None, '_name': '', '_description': '', '_properties': {}, '_unit_of_measurement': [],
-                      '_observation_type': '', '_multi_observation_data_types': [], '_observed_area': None,
-                      '_phenomenon_time': None, '_result_time': None, '_thing': None, '_sensor': None,
-                      '_observed_properties': None, '_observations': None, '_self_link': '', '_service': None}
+        attributes = dict(_id=None, _name='', _description='', _properties={}, _observation_type='', _multi_observation_data_types=[],
+                          _unit_of_measurements=[], _observed_area=None, _phenomenon_time=None, _result_time=None,
+                          _thing=None, _sensor=None, _observed_properties=None, _observations=None, _self_link='',
+                          _service=None)
         for key, value in attributes.items():
             new_mds.__dict__[key] = value
         return new_mds
@@ -121,16 +121,9 @@ class MultiDatastream(entity.Entity):
 
     @unit_of_measurements.setter
     def unit_of_measurements(self, values):
-        if values is None:
-            self._unit_of_measurements = None
-            return
-        if isinstance(values, list) and all(isinstance(uom, unitofmeasurement.UnitOfMeasurement) for uom in values):
-            entity_class = entity_type.EntityTypes['UnitOfMeasurement']['class']
-            self._unit_of_measurements = entity_list.EntityList(entity_class=entity_class, entities=values)
-            return
-        if not isinstance(values, entity_list.EntityList) or \
-                any((not isinstance(uom, unitofmeasurement.UnitOfMeasurement)) for uom in values.entities):
-            raise ValueError('unit_of_measurements should be an entity_list of type UnitOfMeasurement')
+        if values is not None and (not isinstance(values, list) or \
+                        any((not isinstance(uom, unitofmeasurement.UnitOfMeasurement)) for uom in values)):
+                    raise ValueError('unit_of_measurements should be a list of type UnitOfMeasurement')
         self._unit_of_measurements = values
 
     @property
@@ -306,14 +299,14 @@ class MultiDatastream(entity.Entity):
             data['Sensor'] = self.sensor
         if self.properties is not None and self.properties != {}:
             data['properties'] = self.properties
-        if self.unit_of_measurements is not None and len(self.unit_of_measurements.entities) > 0:
-            data['unitOfMeasurements'] = self.unit_of_measurements.__getstate__()
+        if len(self.unit_of_measurements) > 0:
+            data['unitOfMeasurements'] = self.unit_of_measurements
         if len(self.multi_observation_data_types) > 0:
             data['multiObservationDataTypes'] = self.multi_observation_data_types
         if self.observed_properties is not None and len(self.observed_properties.entities) > 0:
-            data['ObservedProperty'] = self.observed_properties.__getstate__()
+            data['ObservedProperties'] = self.observed_properties.__getstate__()
         if self.observations is not None and len(self.observations.entities) > 0:
-            data['Observation'] = self.observations.__getstate__()
+            data['Observations'] = self.observations.__getstate__()
         return data
 
     def __setstate__(self, state):
@@ -331,10 +324,11 @@ class MultiDatastream(entity.Entity):
         if state.get('Sensor', None) is not None:
             self.sensor = frost_sta_client.model.sensor.Sensor()
             self.sensor.__setstate__(state['Sensor'])
-        if state.get('unitOfMeasurements', None) is not None and isinstance(state['unitOfMeasurements'], list):
-            entity_class = entity_type.EntityTypes['UnitOfMeasurement']['class']
-            self.unit_of_measurements = utils.transform_json_to_entity_list(state['unitOfMeasurements'], entity_class)
-            self.unit_of_measurements.next_link = state.get('unitOfMeasurements', None)
+        if state.get('unitOfMeasurements', None) is not None \
+                and isinstance(state['unitOfMeasurements'], list):
+            self.unit_of_measurements = []
+            for value in state['unitOfMeasurements']:
+                self.unit_of_measurements.append(value)
         if state.get('multiObservationDataTypes', None) is not None \
                 and isinstance(state['multiObservationDataTypes'], list):
             self.multi_observation_data_types = []
