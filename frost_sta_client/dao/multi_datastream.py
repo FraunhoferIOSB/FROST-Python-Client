@@ -23,4 +23,4 @@ class MultiDatastreamDao(base.BaseDao):
         """
         A data access object for operations with the MultiDatastream entity
         """
-        base.BaseDao.__init__(self, service, EntityTypes["MultiDatastreams"])
+        base.BaseDao.__init__(self, service, EntityTypes["MultiDatastream"])
