@@ -301,7 +301,7 @@ class MultiDatastream(entity.Entity):
             data['properties'] = self.properties
         if self.unit_of_measurements is not None and len(self.unit_of_measurements) > 0:
             data['unitOfMeasurements'] = self.unit_of_measurements
-        if len(self.multi_observation_data_types) > 0:
+        if self.multi_observation_data_types is not None and len(self.multi_observation_data_types) > 0:
             data['multiObservationDataTypes'] = self.multi_observation_data_types
         if self.observed_properties is not None and len(self.observed_properties.entities) > 0:
             data['ObservedProperties'] = self.observed_properties.__getstate__()
