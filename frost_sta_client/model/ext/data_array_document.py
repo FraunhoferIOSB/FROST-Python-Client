@@ -17,7 +17,9 @@ from .data_array_value import DataArrayValue
 
 
 class DataArrayDocument:
-    def __init__(self, count=-1, next_link = None, value = []):
+    def __init__(self, count=-1, next_link = None, value=None):
+        if value is None:
+            value = []
         self._count = count
         self._next_link = next_link
         self._value = value
