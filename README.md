@@ -106,7 +106,7 @@ An example usage looks as follows:
     service = fsc.SensorThingsService("exampleserver.com/FROST-Server/v1.1")
     dav = fsc.model.ext.data_array_value.DataArrayValue()
     datastream = service.datastreams().find(1)
-    foi = service.feature_of_interest().find(1)
+    foi = service.features_of_interest().find(1)
     components = {dav.Property.PHENOMENON_TIME, dav.Property.RESULT, dav.Property.FEATURE_OF_INTEREST}
     dav.components = components
     dav.datastream = datastream
