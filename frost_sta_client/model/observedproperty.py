@@ -198,7 +198,7 @@ class ObservedProperty(entity.Entity):
         self.name = state.get("name", None)
         self.description = state.get("description", None)
         self.definition = state.get("definition", None)
-        self.properties = state.get("properties", None)
+        self.properties = state.get("properties", {})
         if state.get("Datastreams", None) is not None and isinstance(state["Datastreams"], list):
             entity_class = entity_type.EntityTypes['Datastream']['class']
             self.datastreams = utils.transform_json_to_entity_list(state['Datastreams'], entity_class)

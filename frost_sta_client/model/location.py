@@ -199,6 +199,10 @@ class Location(entity.Entity):
             return False
         if self.encoding_type != other.encoding_type:
             return False
+        if self.location != other.location:
+            return False
+        if self.properties != other.properties:
+            return False
         return True
 
     def __ne__(self, other):
@@ -227,7 +231,7 @@ class Location(entity.Entity):
         self.name = state.get("name", None)
         self.description = state.get("description", None)
         self.encoding_type = state.get("encodingType", None)
-        self.properties = state.get("properties", None)
+        self.properties = state.get("properties", {})
         if state.get("Things", None) is not None:
             entity_class = entity_type.EntityTypes['Thing']['class']
             self.things = utils.transform_json_to_entity_list(state['Things'], entity_class)

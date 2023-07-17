@@ -266,7 +266,7 @@ class Thing(entity.Entity):
         super().__setstate__(state)
         self.name = state.get("name", None)
         self.description = state.get("description", None)
-        self.properties = state.get("properties", None)
+        self.properties = state.get("properties", {})
 
         if state.get("Locations", None) is not None and isinstance(state["Locations"], list):
             entity_class = entity_type.EntityTypes['Location']['class']

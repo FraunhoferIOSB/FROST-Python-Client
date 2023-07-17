@@ -313,7 +313,7 @@ class Datastream(entity.Entity):
         self.name = state.get("name", None)
         self.description = state.get("description", None)
         self.observation_type = state.get("observationType", None)
-        self.properties = state.get("properties", None)
+        self.properties = state.get("properties", {})
         if state.get("unitOfMeasurement", None) is not None:
             self.unit_of_measurement = frost_sta_client.model.ext.unitofmeasurement.UnitOfMeasurement()
             self.unit_of_measurement.__setstate__(state["unitOfMeasurement"])
