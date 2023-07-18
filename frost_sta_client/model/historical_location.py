@@ -107,16 +107,16 @@ class HistoricalLocation(entity.Entity):
     def __getstate__(self):
         data = super().__getstate__()
         if self.time is not None:
-            data['Time'] = utils.parse_datetime(self.time)
+            data['time'] = utils.parse_datetime(self.time)
         if self.thing is not None:
             data['Thing'] = self.thing
         if self.locations is not None and len(self.locations.entities) > 0:
-            data['Locations'] = self.locations.__gestate__()
+            data['Locations'] = self.locations.__getstate__()
         return data
 
     def __setstate__(self, state):
         super().__setstate__(state)
-        self.time = state.get("Time", None)
+        self.time = state.get("time", None)
         if state.get("Thing", None) is not None:
             self.thing = frost_sta_client.model.thing.Thing()
             self.thing.__setstate__(state["Thing"])
