@@ -25,9 +25,10 @@ from frost_sta_client.model.ext import entity_type
 
 class SensorThingsService:
 
-    def __init__(self, url, auth_handler=None):
+    def __init__(self, url, auth_handler=None, proxies=None):
         self.url = url
         self.auth_handler = auth_handler
+        self.proxies = proxies
 
     @property
     def url(self):
@@ -58,11 +59,26 @@ class SensorThingsService:
             raise ValueError('auth should be of type AuthHandler!')
         self._auth_handler = value
 
+    
+    @property
+    def proxies(self):
+        return self._proxies
+
+    @proxies.setter
+    def proxies(self, value):
+        if value is None:
+            self._proxies = None
+            return
+        elif not isinstance(value, dict):
+            raise ValueError('Proxies must be a Dictionary!')
+        self._proxies = value
+    
+    
     def execute(self, method, url, **kwargs):
         if self.auth_handler is not None:
-            response = requests.request(method, url, auth=self.auth_handler.add_auth_header(), **kwargs)
+            response = requests.request(method, url, proxies=self.proxies, auth=self.auth_handler.add_auth_header(), **kwargs)
         else:
-            response = requests.request(method, url, **kwargs)
+            response = requests.request(method, url, proxies=self.proxies, **kwargs)
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
