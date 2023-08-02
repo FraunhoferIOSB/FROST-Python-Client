@@ -111,11 +111,11 @@ An example usage looks as follows:
     dav.components = components
     dav.datastream = datastream
     obs1 = fsc.Observation(result=3,
-                           phenomenon_time='2022-12-19T10:00:00Z/2022-12-19T11:0:0Z',
+                           phenomenon_time='2022-12-19T10:00:00Z',
                            datastream=datastream,
                            feature_of_interest=foi)
     obs2 = fsc.Observation(result=5,
-                           phenomenon_time='2022-12-19T10:00:00Z/2022-12-19T11:0:0Z',
+                           phenomenon_time='2022-12-19T10:00:00Z/2022-12-19T11:00:00Z',
                            datastream=datastream,
                            feature_of_interest=foi)
     dav.add_observation(obs1)
