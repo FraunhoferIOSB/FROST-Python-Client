@@ -15,14 +15,14 @@ identified by a URI.
 
 ### CRUD operations
 The source code below demonstrates the CRUD operations for Thing objects. Operations for other entities work similarly.
-```
+```python
 import frost_sta_client as fsc
 
 url = "exampleserver.com/FROST-Server/v1.1"
 service = fsc.SensorThingsService(url)
 ```
 #### Creating Entities
-```
+```python
 from geojson import Point
 
 point = Point((-115.81, 37.24))
@@ -37,7 +37,7 @@ service.create(thing)
 #### Querying Entities
 Queries to the FROST Server can be modified to include filters, selections or expansions. The return value is always
 an EntityList object, containing the parsed json response of the server.
-```
+```python
 things_list = service.things().query().filter('id eq 1').list()
 
 for thing in things_list:
@@ -50,7 +50,7 @@ replaying to the request with the first chunk accompanied by the link to the nex
 
 The class `EntityList` implements the function `__iter__` and `__next__` which makes it capable of iterating 
 through the entire list of entities, including the calls to all chunks.
-```
+```python
 things_list = service.things().query().list()
 
 for thing in things_list:
@@ -59,7 +59,7 @@ for thing in things_list:
 
 In a case where only the current chunk is supposed to be iterated, the `entities` list can be used.
 
-```
+```python
 things_list = service.things().query().top(20).list()
 
 for thing in things_list.entities:
@@ -69,7 +69,7 @@ for thing in things_list.entities:
 ### Queries to related entity lists
 
 For example the Observations of a given Datastream can be queried via
-```
+```python
 datastream = service.datastreams().find(1)
 observations_list = datastream.get_observations().query().filter("result gt 10").list()
 ```
@@ -84,7 +84,7 @@ combination with a for-loop).
 
 The callback function is called with one argument, which is the current index of the iteration.
 
-```
+```python
 def callback_func(loaded_entities):
     print("loaded {} entities!".format(loaded_entities))
 
@@ -100,7 +100,7 @@ DataArrays can be used to make the creation of Observations easier, because with
 has to be created.
 
 An example usage looks as follows:
-```
+```python
     import frost_sta_client as fsc
     
     service = fsc.SensorThingsService("exampleserver.com/FROST-Server/v1.1")
@@ -115,7 +115,7 @@ An example usage looks as follows:
                            datastream=datastream,
                            feature_of_interest=foi)
     obs2 = fsc.Observation(result=5,
-                           phenomenon_time='2022-12-19T17:00:00Z',
+                           phenomenon_time='2022-12-19T10:00:00Z/2022-12-19T11:00:00Z',
                            datastream=datastream,
                            feature_of_interest=foi)
     dav.add_observation(obs1)

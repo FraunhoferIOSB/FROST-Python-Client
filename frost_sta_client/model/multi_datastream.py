@@ -345,5 +345,5 @@ class MultiDatastream(entity.Entity):
             self.observed_properties.next_link = state.get('Observations@iot.nextLink')
             self.observed_properties.count = state.get('Observations@iot.count')
 
-    def get_dao(self):
-        return MultiDatastreamDao(self)
+    def get_dao(self, service):
+        return MultiDatastreamDao(service)
