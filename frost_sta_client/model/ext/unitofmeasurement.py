@@ -68,3 +68,16 @@ class UnitOfMeasurement:
         self.symbol = state.get("symbol", None)
         self.definition = state.get("definition", None)
         self.name = state.get("name", None)
+
+    def __eq__(self, other):
+        if other is None:
+            return False
+        if not isinstance(other, type(self)):
+            return False
+        if self.name != other.name:
+            return False
+        if self.definition != other.definition:
+            return False
+        if self.symbol != other.symbol:
+            return False
+        return True
