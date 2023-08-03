@@ -111,8 +111,6 @@ class Entity(ABC):
             return True
         if self.id != other.id:
             return False
-        if self.self_link != other.self_link:
-            return False
         return True
 
     def __ne__(self, other):

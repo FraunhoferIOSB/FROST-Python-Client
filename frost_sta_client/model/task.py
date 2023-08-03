@@ -80,12 +80,8 @@ class Task(entity.Entity):
             self.tasking_capability.set_service(service)
 
     def __eq__(self, other):
-        if other is None:
+        if not super().__eq__(other):
             return False
-        if not isinstance(other, type(self)):
-            return False
-        if id(self) == id(other):
-            return True
         if self.tasking_parameters != other.tasking_parameters:
             return False
         if self.creation_time != other.creation_time:

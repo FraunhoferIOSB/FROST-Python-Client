@@ -74,6 +74,8 @@ class UnitOfMeasurement:
             return False
         if not isinstance(other, type(self)):
             return False
+        if id(self) == id(other):
+            return True
         if self.name != other.name:
             return False
         if self.definition != other.definition:
