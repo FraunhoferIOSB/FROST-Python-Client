@@ -4,3 +4,7 @@ dist
 **.egg-info/
 
 pyproject.toml
+
+.vscode
+Pipfile*
+*.ipynb

@@ -21,15 +21,16 @@ import frost_sta_client.model.ext.entity_list
 import logging
 import requests
 from requests.exceptions import JSONDecodeError
+from typing import Dict
 
 
 class Query:
-    def __init__(self, service, entity, entitytype_plural, entity_class, parent):
+    def __init__(self, service, entity, entitytype_plural, entity_class, parent, params: Dict[str, str] = {}):
         self.service = service
         self.entity = entity
         self.entitytype_plural = entitytype_plural
         self.entity_class = entity_class
-        self.params = {}
+        self.params = params
         self.parent = parent
 
     @property

@@ -22,6 +22,7 @@ import requests
 import jsonpatch
 import json
 from furl import furl
+from typing import Dict
 
 
 class BaseDao:
@@ -204,6 +205,6 @@ class BaseDao:
             return "{}({})".format(self.entitytype_plural, id)
         return "{}('{}')".format(self.entitytype_plural, id)
 
-    def query(self):
+    def query(self, params: Dict[str, str] = {}):
         return frost_sta_client.query.query.Query(self.service, self.entitytype, self.entitytype_plural,
-                                                  self.entity_class, self.parent)
+                                                  self.entity_class, self.parent, params)
