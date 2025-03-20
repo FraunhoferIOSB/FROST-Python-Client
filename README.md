@@ -75,6 +75,7 @@ observations_list = datastream.get_observations().query().filter("result gt 10")
 ```
 
 ### Callback function in `EntityList`
+
 The progress of the loading process can be tracked by supplying a callback function along with a step size. The callback
 function and the step size must both be provided to the `list` function (see example below).
 
