@@ -1,7 +1,7 @@
 __title__ = 'frost_sta_client'
 __version__ = '1.1.46'
 __license__ = 'LGPL3'
-__author__ = 'Maximilian Zenner'
+__author__ = 'Fraunhofer IOSB'
 __copyright__ = 'Fraunhofer IOSB'
 __contact__ = 'maximilian.zenner@iosb.fraunhofer.de'
 __url__ = 'https://github.com/FraunhoferIOSB/FROST-Python-Client'
