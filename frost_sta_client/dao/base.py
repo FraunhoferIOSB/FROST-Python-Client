@@ -112,25 +112,21 @@ class BaseDao:
         entity.service = self.service
         logging.debug('Received response: ' + str(response.status_code))
 
-    def patch(self, entity, patches):
+    def patch(self, entity, patch):
         """
         method to patch STA entities
         param entity: entity, that the patches should be applied to
-        param patches: a list of dictionaries, containing the changes to be applied
+        param patch: a dictionary, containing only the fields with changes
         """
         url = furl(self.service.url)
         if entity.id is None or entity.id == '':
             raise AttributeError('please provide an entity with a valid id')
         url.path.add(self.entity_path(entity.id))
         logging.debug(f'Patching to {url.url}')
-        if patches is None:
-            raise ValueError('please provide a list of patches as a '
-                             'list of dictionaries')
-        if not (isinstance(patches, list) and all(isinstance(x, dict) for x in patches)):
-            raise ValueError('please provide a list of patches as a '
-                             'list of dictionaries')
+        if patch is None or not isinstance(patch, dict):
+            raise ValueError('Please provide a dictionary with fields to be changed.')
         try:
-            response = self.service.execute('patch', url, json=patches)
+            response = self.service.execute('patch', url, json=patch)
         except requests.exceptions.HTTPError as e:
             error_json = e.response.json()
             error_message = error_json['message']
