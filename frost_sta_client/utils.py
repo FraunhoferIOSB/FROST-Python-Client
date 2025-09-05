@@ -31,8 +31,11 @@ def extract_value(location):
     return value
 
 def transform_entity_to_json_dict(entity):
-    json_str = jsonpickle.encode(entity, unpicklable=False)
-    return jsonpickle.decode(json_str)
+    try:
+        data = entity.__getstate__()
+    except AttributeError:
+        data = entity.__dict__
+    return data
 
 def class_from_string(string):
     module_name, class_name = string.rsplit(".", 1)
