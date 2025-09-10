@@ -22,8 +22,11 @@ jobs:
         python-version: "3.12"
     - name: Install dependencies
       run: |
-        sudo apt update
-        sudo apt install -y podman podman-compose
+        echo '#!/usr/bin/env bash' | sudo tee /usr/local/bin/podman >/dev/null
+        echo 'exec docker "$@"' | sudo tee -a /usr/local/bin/podman >/dev/null
+        sudo chmod +x /usr/local/bin/podman
+        docker info
+        docker compose version
         python3 -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
