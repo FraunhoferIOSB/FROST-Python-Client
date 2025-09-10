@@ -3,5 +3,5 @@ demjson3
 requests
 furl
 geojson
-pytest
-requests
+jsonpatch
+python-dateutil
