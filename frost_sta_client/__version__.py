@@ -1,5 +1,5 @@
 __title__ = 'frost_sta_client'
-__version__ = '1.1.49'
+__version__ = '1.1.50'
 __license__ = 'LGPL3'
 __author__ = 'Fraunhofer IOSB'
 __copyright__ = 'Fraunhofer IOSB'
