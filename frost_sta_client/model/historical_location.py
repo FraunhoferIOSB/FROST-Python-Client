@@ -105,7 +105,7 @@ class HistoricalLocation(entity.Entity):
         if self.time is not None:
             data['time'] = utils.parse_datetime(self.time)
         if self.thing is not None:
-            data['Thing'] = self.thing
+            data['Thing'] = self.thing.__getstate__()
         if self.locations is not None and len(self.locations.entities) > 0:
             data['Locations'] = self.locations.__getstate__()
         return data

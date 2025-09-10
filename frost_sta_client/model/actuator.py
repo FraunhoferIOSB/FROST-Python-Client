@@ -165,7 +165,7 @@ class Actuator(entity.Entity):
         if self.properties is not None and self.properties != {}:
             data['properties'] = self.properties
         if self.tasking_capabilities is not None and len(self.tasking_capabilities.entities) > 0:
-            data['taskingCapabilities'] = self.tasking_capabilities.__getstate__()
+            data['TaskingCapabilities'] = self.tasking_capabilities.__getstate__()
         return data
 
     def __setstate__(self, state):

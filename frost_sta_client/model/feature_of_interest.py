@@ -179,7 +179,7 @@ class FeatureOfInterest(entity.Entity):
         if self.feature is not None:
             data['feature'] = self.feature
         if self.observations is not None and len(self.observations.entities) > 0:
-            data['Observations'] = self.observations.__gestate__()
+            data['Observations'] = self.observations.__getstate__()
         return data
 
     def __setstate__(self, state):

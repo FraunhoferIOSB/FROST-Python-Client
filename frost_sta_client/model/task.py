@@ -98,7 +98,7 @@ class Task(entity.Entity):
         if self.creation_time is not None:
             data['creationTime'] = utils.parse_datetime(self.creation_time)
         if self.tasking_capability is not None:
-            data['TaskingCapability'] = self.tasking_capability
+            data['TaskingCapability'] = self.tasking_capability.__getstate__()
         return data
 
     def __setstate__(self, state):

@@ -186,11 +186,11 @@ class TaskingCapability(entity.Entity):
         if self.properties is not None and self.properties != {}:
             data['properties'] = self.properties
         if self.thing is not None:
-            data['Thing'] = self.thing
+            data['Thing'] = self.thing.__getstate__()
         if self.tasks is not None and len(self.tasks.entities) > 0:
             data['Tasks'] = self.tasks.__getstate__()
         if self.actuator is not None:
-            data['Actuator'] = self.actuator
+            data['Actuator'] = self.actuator.__getstate__()
         return data
 
     def __setstate__(self, state):

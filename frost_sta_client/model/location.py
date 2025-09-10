@@ -218,9 +218,9 @@ class Location(entity.Entity):
         if self.location is not None:
             data['location'] = self.location
         if self.things is not None:
-            data['Things'] = self.things
+            data['Things'] = self.things.__getstate__()
         if self.historical_locations is not None and len(self.historical_locations.entities) > 0:
-            data['HistoricalLocation'] = self.historical_locations.__getstate__()
+            data['HistoricalLocations'] = self.historical_locations.__getstate__()
         return data
 
     def __setstate__(self, state):

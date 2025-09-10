@@ -184,7 +184,7 @@ class ObservedProperty(entity.Entity):
         if self.properties is not None and self.properties != {}:
             data['properties'] = self.properties
         if self.datastreams is not None and len(self.datastreams.entities) > 0:
-            data['Datastream'] = self.datastreams.__getstate__()
+            data['Datastreams'] = self.datastreams.__getstate__()
         if self.multi_datastreams is not None and len(self.multi_datastreams.entities) > 0:
             data['MultiDatastreams'] = self.multi_datastreams.__getstate__()
         return data
