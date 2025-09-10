@@ -287,7 +287,7 @@ class Datastream(entity.Entity):
         if self.properties is not None and self.properties != {}:
             data['properties'] = self.properties
         if self.unit_of_measurement is not None:
-            data['unitOfMeasurement'] = self.unit_of_measurement
+            data['unitOfMeasurement'] = self.unit_of_measurement.__getstate__()
         if self.observed_area is not None:
             data['observedArea'] = self.observed_area
         if self.phenomenon_time is not None:
@@ -295,11 +295,11 @@ class Datastream(entity.Entity):
         if self.result_time is not None:
             data['resultTime'] = utils.parse_datetime(self.result_time)
         if self.thing is not None:
-            data['Thing'] = self.thing
+            data['Thing'] = self.thing.__getstate__()
         if self.sensor is not None:
-            data['Sensor'] = self.sensor
+            data['Sensor'] = self.sensor.__getstate__()
         if self.observed_property is not None:
-            data['ObservedProperty'] = self.observed_property
+            data['ObservedProperty'] = self.observed_property.__getstate__()
         if self.observations is not None and len(self.observations.entities) > 0:
             data['Observations'] = self.observations.__getstate__()
         return data
