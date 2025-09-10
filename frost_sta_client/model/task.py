@@ -105,9 +105,9 @@ class Task(entity.Entity):
         super().__setstate__(state)
         self.tasking_parameters = state.get('taskingParameters', {})
         self.creation_time = state.get('creationTime', None)
-        if state.get('taskingCapability', None) is not None:
+        if state.get('TaskingCapability', None) is not None:
             self.tasking_capability = frost_sta_client.model.tasking_capability.TaskingCapability()
-            self.tasking_capability.__setstate__(state['taskingCapability'])
+            self.tasking_capability.__setstate__(state['TaskingCapability'])
 
     def get_dao(self, service):
         return TaskDao(service)
