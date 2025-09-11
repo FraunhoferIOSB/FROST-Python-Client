@@ -260,7 +260,7 @@ class MultiDatastream(entity.Entity):
             return False
         if self.observation_type != other.observation_type:
             return False
-        if self.observed_area != other.observation_area:
+        if self.observed_area != other.observed_area:
             return False
         if self.properties != other.properties:
             return False
@@ -338,8 +338,8 @@ class MultiDatastream(entity.Entity):
         if state.get('Observations', None) is not None and isinstance(state['Observations'], list):
             entity_class = entity_type.EntityTypes['Observation']['class']
             self.observations = utils.transform_json_to_entity_list(state['Observations'], entity_class)
-            self.observed_properties.next_link = state.get('Observations@iot.nextLink')
-            self.observed_properties.count = state.get('Observations@iot.count')
+            self.observations.next_link = state.get('Observations@iot.nextLink')
+            self.observations.count = state.get('Observations@iot.count')
 
     def get_dao(self, service):
         return MultiDatastreamDao(service)

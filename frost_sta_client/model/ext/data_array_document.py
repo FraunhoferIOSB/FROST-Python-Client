@@ -60,9 +60,8 @@ class DataArrayDocument:
     def get_observations(self):
         obs_list = []
         for dav in self.value:
-            obs_list.concat(dav.get_observations())
+            obs_list.extend(dav.observations)
         return obs_list
 
     def add_data_array_value(self, dav):
         self.value.append(dav)
-

@@ -202,7 +202,7 @@ class ObservedProperty(entity.Entity):
             self.datastreams.count = state.get('Datastreams@iot.count', None)
         if state.get("MultiDatastreams", None) is not None and isinstance(state["MultiDatastreams"], list):
             entity_class = entity_type.EntityTypes['MultiDatastream']['class']
-            self.multi_datastreams = utils.transform_json_to_entity_list(state['MultiDatatstreams'], entity_class)
+            self.multi_datastreams = utils.transform_json_to_entity_list(state['MultiDatastreams'], entity_class)
             self.multi_datastreams.next_link = state.get('MultiDatastreams@iot.nextLink', None)
             self.multi_datastreams.count = state.get('MultiDatastreams@iot.count', None)
 

@@ -146,7 +146,7 @@ class Datastream(entity.Entity):
     @observed_area.setter
     def observed_area(self, value):
         if value is None:
-            self._location = None
+            self._observed_area = None
             return
         geo_classes = [obj for _, obj in inspect.getmembers(geojson) if inspect.isclass(obj) and
                        obj.__module__ == 'geojson.geometry']
