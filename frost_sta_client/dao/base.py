@@ -104,10 +104,20 @@ class BaseDao:
         try:
             response = self.service.execute('post', url, json=json_dict)
         except requests.exceptions.HTTPError as e:
-            error_json = e.response.json()
-            error_message = error_json['message']
+            # Handle non-JSON error responses gracefully
+            try:
+                err = e.response.json()
+                if isinstance(err, dict):
+                    error_message = err.get('message', err.get('error', str(err)))
+                else:
+                    error_message = str(err)
+            except Exception:
+                try:
+                    error_message = getattr(e.response, 'text', str(e))
+                except Exception:
+                    error_message = str(e)
             logging.error("Creating {} failed with status-code {}, {}".format(type(entity).__name__,
-                                                                            e.response.status_code,
+                                                                            getattr(e.response, 'status_code', 'unknown'),
                                                                             error_message))
             raise e
         entity.id = frost_sta_client.utils.extract_value(response.headers['location'])
@@ -138,10 +148,20 @@ class BaseDao:
         try:
             response = self.service.execute('patch', url, json=patches, headers=headers)
         except requests.exceptions.HTTPError as e:
-            error_json = e.response.json()
-            error_message = error_json['message']
+            # Handle non-JSON error responses gracefully
+            try:
+                err = e.response.json()
+                if isinstance(err, dict):
+                    error_message = err.get('message', err.get('error', str(err)))
+                else:
+                    error_message = str(err)
+            except Exception:
+                try:
+                    error_message = getattr(e.response, 'text', str(e))
+                except Exception:
+                    error_message = str(e)
             logging.error("Patching {} failed with status-code {}, {}".format(type(entity).__name__,
-                                                                            e.response.status_code,
+                                                                            getattr(e.response, 'status_code', 'unknown'),
                                                                             error_message))
             raise e
         logging.debug(f'Received response: {str(response.status_code)}')
@@ -156,10 +176,20 @@ class BaseDao:
         try:
             response = self.service.execute('put', url, json=json_dict)
         except requests.exceptions.HTTPError as e:
-            error_json = e.response.json()
-            error_message = error_json['message']
+            # Handle non-JSON error responses gracefully
+            try:
+                err = e.response.json()
+                if isinstance(err, dict):
+                    error_message = err.get('message', err.get('error', str(err)))
+                else:
+                    error_message = str(err)
+            except Exception:
+                try:
+                    error_message = getattr(e.response, 'text', str(e))
+                except Exception:
+                    error_message = str(e)
             logging.error("Updating {} failed with status-code {}, {}".format(type(entity).__name__,
-                                                                            e.response.status_code,
+                                                                            getattr(e.response, 'status_code', 'unknown'),
                                                                             error_message))
             raise e
         logging.debug('Received response: {}'.format(str(response.status_code)))
@@ -171,10 +201,20 @@ class BaseDao:
         try:
             response = self.service.execute('get', url)
         except requests.exceptions.HTTPError as e:
-            error_json = e.response.json()
-            error_message = error_json['message']
+            # Handle non-JSON error responses gracefully
+            try:
+                err = e.response.json()
+                if isinstance(err, dict):
+                    error_message = err.get('message', err.get('error', str(err)))
+                else:
+                    error_message = str(err)
+            except Exception:
+                try:
+                    error_message = getattr(e.response, 'text', str(e))
+                except Exception:
+                    error_message = str(e)
             logging.error("Finding {} failed with status-code {}, {}".format(id,
-                                                                            e.response.status_code,
+                                                                            getattr(e.response, 'status_code', 'unknown'),
                                                                             error_message))
             raise e
         logging.debug('Received response: {}'.format(response.status_code))
@@ -191,10 +231,20 @@ class BaseDao:
         try:
             response = self.service.execute('delete', url)
         except requests.exceptions.HTTPError as e:
-            error_json = e.response.json()
-            error_message = error_json['message']
+            # Handle non-JSON error responses gracefully
+            try:
+                err = e.response.json()
+                if isinstance(err, dict):
+                    error_message = err.get('message', err.get('error', str(err)))
+                else:
+                    error_message = str(err)
+            except Exception:
+                try:
+                    error_message = getattr(e.response, 'text', str(e))
+                except Exception:
+                    error_message = str(e)
             logging.error("Deleting {} failed with status-code {}, {}".format(type(entity).__name__,
-                                                                            e.response.status_code,
+                                                                            getattr(e.response, 'status_code', 'unknown'),
                                                                             error_message))
             raise e
         logging.debug('Received response: {}'.format(response.status_code))
