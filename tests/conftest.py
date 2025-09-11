@@ -8,7 +8,7 @@ from frost_sta_client.service.sensorthingsservice import SensorThingsService
 
 @pytest.fixture(scope='session')
 def frost_server():
-    if os.environ.get('RUN_INTEGRATION') != '1':
+    if os.environ.get('FROST_STA_CLIENT_RUN_INTEGRATION') != '1':
         # Skip starting server if not requested
         yield
         return

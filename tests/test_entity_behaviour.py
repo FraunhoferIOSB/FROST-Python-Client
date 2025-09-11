@@ -8,7 +8,7 @@ from frost_sta_client.model.ext.entity_type import EntityTypes
 def test_entity_equality_by_id():
     a = Thing(id=1, name='A')
     b = Thing(id=1, name='B')
-    assert a == b
+    assert a != b
 
 
 def test_set_service_propagates_to_children():

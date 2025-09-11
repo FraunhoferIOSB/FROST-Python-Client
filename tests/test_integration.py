@@ -1,6 +1,6 @@
 import pytest
 import os
-pytestmark = pytest.mark.skipif(os.environ.get('RUN_INTEGRATION') != '1', reason='Integration tests require FROST server. Set RUN_INTEGRATION=1 to run.')
+pytestmark = pytest.mark.skipif(os.environ.get('FROST_STA_CLIENT_RUN_INTEGRATION') != '1', reason='Integration tests require FROST server. Set FROST_STA_CLIENT_RUN_INTEGRATION=1 to run.')
 from geojson import Point
 from frost_sta_client.model import thing, sensor, observedproperty, datastream, observation, feature_of_interest
 from frost_sta_client.model.ext import unitofmeasurement

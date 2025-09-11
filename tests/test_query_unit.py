@@ -33,8 +33,10 @@ def test_query_builds_and_lists():
     first = MockResponse(200, {"value": [{"@iot.id": 1, "name": "A"}], "@iot.nextLink": None})
     svc = DummyService('http://example.org/FROST-Server/v1.1', [first])
     lst = svc.things().query().filter("name eq 'A'").select('name').orderby('name', 'ASC').top(1).skip(0).expand('Datastreams').list()
+    assert len(svc.calls) == 1
+    assert 'get' == svc.calls[0][0]
+    assert 'Things' in svc.calls[0][1]
+    assert '%24filter' in svc.calls[0][1]
     assert len(lst.entities) == 1
     assert isinstance(lst, frost_sta_client.model.ext.entity_list.EntityList)
-    assert len(svc.calls) == 1
-    assert 'Things' in svc.calls[0][1]
-    assert '$filter' in svc.calls[0][1]
+    assert isinstance(lst.entities[0], frost_sta_client.model.thing.Thing)
