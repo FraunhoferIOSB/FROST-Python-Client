@@ -2,11 +2,16 @@ import pytest
 import subprocess
 import time
 import requests
+import os
 
 from frost_sta_client.service.sensorthingsservice import SensorThingsService
 
 @pytest.fixture(scope='session')
 def frost_server():
+    if os.environ.get('RUN_INTEGRATION') != '1':
+        # Skip starting server if not requested
+        yield
+        return
     # Start FROST-Server using Podman
     subprocess.run(['podman', 'compose', '-f', 'frost_server/docker-compose.yaml', 'up', '-d'])
     # Wait for server to start
@@ -21,7 +26,7 @@ def frost_server():
     else:
         raise RuntimeError('FROST-Server failed to start')
     yield
-    subprocess.run(['podman', 'compose', '-f', '../frost_server/docker-compose.yaml', 'down'])
+    subprocess.run(['podman', 'compose', '-f', 'frost_server/docker-compose.yaml', 'down'])
 
 @pytest.fixture
 def sensorthings_service(frost_server):

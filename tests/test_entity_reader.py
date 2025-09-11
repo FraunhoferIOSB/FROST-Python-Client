@@ -106,8 +106,7 @@ class TestEntityReader(unittest.TestCase):
 
         things = frost_sta_client.utils.transform_json_to_entity_list(json_dict, 'frost_sta_client.model.thing.Thing')
 
-        self.assertEqual('https://server.de/SensorThingsService/v1.0/Things?$top=2&$'
-                         'skip=14&$expand=Datastreams%28%24top%3D2%3B%24count%3Dtrue%29', things.next_link)
+        self.assertEqual('https://server.de/SensorThingsService/v1.0/Things?$top=2&$skip=14&$expand=Datastreams%28%24top%3D2%3B%24count%3Dtrue%29', things.next_link)
 
         thing = things.entities[0]
         self.assertEqual(19, thing.id)
