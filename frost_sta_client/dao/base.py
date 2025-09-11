@@ -19,7 +19,6 @@ import frost_sta_client.utils
 
 import logging
 import requests
-import jsonpatch
 import json
 from furl import furl
 
@@ -29,8 +28,7 @@ class BaseDao:
     The entity independent implementation of a data access object. Specific entity Daos
     can be implemented by inheriting from this class.
     """
-    APPLICATION_JSON_PATCH = {'Content-type': 'application/json-patch+json'}
-
+    
     def __init__(self, service, entitytype):
         """
         Constructor.
@@ -114,29 +112,21 @@ class BaseDao:
         entity.service = self.service
         logging.debug('Received response: ' + str(response.status_code))
 
-    def patch(self, entity, patches):
+    def patch(self, entity, patch):
         """
         method to patch STA entities
         param entity: entity, that the patches should be applied to
-        param patches: either a JsonPatch object or list of dictionaries, containing jsonpatch commands
+        param patch: a dictionary, containing only the fields with changes
         """
         url = furl(self.service.url)
         if entity.id is None or entity.id == '':
             raise AttributeError('please provide an entity with a valid id')
         url.path.add(self.entity_path(entity.id))
         logging.debug(f'Patching to {url.url}')
-        headers = self.APPLICATION_JSON_PATCH
-        if patches is None:
-            raise ValueError('please provide a list of patches, either as a jsonpatch object or a '
-                             'list of dictionaries')
-        if not isinstance(patches, jsonpatch.JsonPatch) and \
-                not (isinstance(patches, list) and all(isinstance(x, dict) for x in patches)):
-            raise ValueError('please provide a list of patches, either as a jsonpatch object or a '
-                             'list of dictionaries')
-        if isinstance(patches, jsonpatch.JsonPatch):
-            patches = patches.patch
+        if patch is None or not isinstance(patch, dict):
+            raise ValueError('Please provide a dictionary with fields to be changed.')
         try:
-            response = self.service.execute('patch', url, json=patches, headers=headers)
+            response = self.service.execute('patch', url, json=patch)
         except requests.exceptions.HTTPError as e:
             error_json = e.response.json()
             error_message = error_json['message']
@@ -154,7 +144,7 @@ class BaseDao:
         logging.debug('Updating to {}'.format(url.url))
         json_dict = frost_sta_client.utils.transform_entity_to_json_dict(entity)
         try:
-            response = self.service.execute('put', url, json=json_dict)
+            response = self.service.execute('patch', url, json=json_dict)
         except requests.exceptions.HTTPError as e:
             error_json = e.response.json()
             error_message = error_json['message']
