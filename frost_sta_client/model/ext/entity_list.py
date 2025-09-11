@@ -46,12 +46,12 @@ class EntityList:
         return self
 
     def __next__(self):
-        idx, next_entity = next(self.iterable_entities, (len(self.entities), None))
-        if self.step_size is not None and idx is not None and idx % self.step_size == 0:
-            self.callback(idx)
-        if next_entity is not None:
-            return next_entity
-        if self.next_link is not None:
+        idx, next_entity = next(self.iterable_entities, (None, None))
+        # Only trigger callback when returning a real entity, not on sentinel indices
+        if next_entity is None:
+            # If current page is exhausted, try to load the next page
+            if self.next_link is None:
+                raise StopIteration
             try:
                 response = self.service.execute('get', self.next_link)
             except requests.exceptions.HTTPError as e:
@@ -66,11 +66,18 @@ class EntityList:
                 raise ValueError('Cannot find json in http response')
 
             result_list = frost_sta_client.utils.transform_json_to_entity_list(json_response, self.entity_class)
+            # Append new entities and reset iterator to iterate over the newly fetched page
+            start_index = len(self.entities)
             self.entities += result_list.entities
             self.set_service(self.service)
             self.next_link = json_response.get("@iot.nextLink", None)
-            self.iterable_entities = iter(enumerate(self.entities[-len(result_list.entities):], start=idx))
-            return next(self.iterable_entities)[1]
+            self.iterable_entities = iter(enumerate(self.entities[start_index:], start=start_index))
+            idx, next_entity = next(self.iterable_entities, (None, None))
+            if next_entity is None:
+                raise StopIteration
+        if self.step_size is not None and self.callback is not None and idx % self.step_size == 0:
+            self.callback(idx)
+        return next_entity
         raise StopIteration
 
     def get(self, index):
