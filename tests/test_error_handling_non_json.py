@@ -1,7 +1,9 @@
 import pytest
 import requests
+import json
 from frost_sta_client.service.sensorthingsservice import SensorThingsService
 from frost_sta_client.utils import transform_json_to_entity_list
+from frost_sta_client.model.thing import Thing
 
 
 class DummyService(SensorThingsService):
@@ -39,3 +41,26 @@ def test_entitylist_iter_handles_non_json_error():
     it = iter(elist)
     with pytest.raises(requests.exceptions.HTTPError):
         next(it)
+
+
+class WorkingService(SensorThingsService):
+    def __init__(self, url):
+        super().__init__(url)
+
+    def execute(self, method, url, **kwargs):
+        class Resp:
+            status_code = 400
+            text = '{"code":400,"type":"error","message":"Not a valid path for DELETE."}'
+
+            def json(self):
+                return json.loads(self.text)
+
+        raise requests.exceptions.HTTPError(response=Resp())
+
+
+def test_basedao_handles_json_error(caplog):
+    svc = WorkingService('http://example.org/FROST-Server/v1.1/Things')
+    with pytest.raises(requests.exceptions.HTTPError):
+        thing = Thing(id=1)
+        svc.delete(thing)
+    assert caplog.messages[-1] == "Deleting Thing failed with status-code 400, Not a valid path for DELETE."
