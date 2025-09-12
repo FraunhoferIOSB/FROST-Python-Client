@@ -46,22 +46,7 @@ class ObservationDao(base.BaseDao):
             try:
                 response = self.service.execute('post', url, json=json_dict)
             except requests.exceptions.HTTPError as e:
-                # Handle non-JSON error responses gracefully
-                try:
-                    err = e.response.json()
-                    if isinstance(err, dict):
-                        error_message = err.get('message', err.get('error', str(err)))
-                    else:
-                        error_message = str(err)
-                except Exception:
-                    try:
-                        error_message = getattr(e.response, 'text', str(e))
-                    except Exception:
-                        error_message = str(e)
-                logging.error("Creating {} failed with status-code {}, {}".format("Data Array",
-                                                                              getattr(e.response, 'status_code', 'unknown'),
-                                                                              error_message))
-                raise e
+                frost_sta_client.utils.handle_server_error(e, 'Creating Data Array')
             response_text_as_list = json.loads(response.text)
             result = [frost_sta_client.model.observation.Observation(self_link=link) for link in response_text_as_list]
             return result

@@ -146,20 +146,7 @@ class Query:
         try:
             response = self.service.execute('get', url)
         except requests.exceptions.HTTPError as e:
-            # Try to extract a meaningful error message even if the response is not JSON
-            try:
-                err = e.response.json()
-                if isinstance(err, dict):
-                    error_message = err.get('message', err.get('error', str(err)))
-                else:
-                    error_message = str(err)
-            except Exception:
-                try:
-                    error_message = getattr(e.response, 'text', str(e))
-                except Exception:
-                    error_message = str(e)
-            logging.error("Query failed with status-code {}, {}".format(getattr(e.response, 'status_code', 'unknown'), error_message))
-            raise e
+            frost_sta_client.utils.handle_server_error(e, 'Query')
         logging.debug('Received response: {} from {}'.format(response.status_code, url))
         try:
             json_response = response.json()
