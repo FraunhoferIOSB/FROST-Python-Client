@@ -19,7 +19,8 @@ The source code below demonstrates the CRUD operations for Thing objects. Operat
 import frost_sta_client as fsc
 
 url = "exampleserver.com/FROST-Server/v1.1"
-service = fsc.SensorThingsService(url)
+auth_handler = fsc.AuthHandler(username="admin", password="admin") # if server is configured for basic auth, else None
+service = fsc.SensorThingsService(url, auth_handler=auth_handler)
 ```
 #### Creating Entities
 ```python
