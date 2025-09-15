@@ -37,11 +37,14 @@ def _last_segment(fqn: str) -> str:
 
 
 def _split_collection(type_str: str) -> Tuple[bool, str]:
+
+
 def _resolve_underlying(type_str: str, model: Dict[str, Any]) -> str:
     # If this is a TypeDefinition, resolve to its underlying EDM type; otherwise return as-is
     if type_str in model.get("type_defs", {}):
         return model["type_defs"][type_str].get("underlying", type_str)
     return type_str
+
 
 def _to_py_hint(prop_name: str, type_str: str, model: Dict[str, Any]) -> Tuple[str, str, bool]:
     """Return (annotation, base_for_check, is_collection).
@@ -69,7 +72,6 @@ def _to_py_hint(prop_name: str, type_str: str, model: Dict[str, Any]) -> Tuple[s
     return ann, base_py, is_coll
 
 
-
 def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "datamodel", source_url: str = "", odata_version: str = "") -> str:
     """Generate Python source for the OData model; classes align with frost_sta_client.model patterns.
 
@@ -82,6 +84,7 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
     Returns: absolute path of the generated module file.
     """
     model = parse_metadata(xml_text)
+
 
     def snake(name: str) -> str:
         # Convert PascalCase/camelCase to snake_case for attribute names
@@ -97,6 +100,7 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                 out.append(ch)
                 prev_is_lower = ch.isalpha()
         return ''.join(out)
+
 
     def is_time_like(odata_name: str) -> bool:
         # Common SensorThings time fields
