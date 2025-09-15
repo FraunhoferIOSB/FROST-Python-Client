@@ -194,6 +194,10 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         for p in props:
             ann, _base_check, _is_coll = _to_py_hint(p['name'], p['type'], model)
             arg_parts.append(f"{snake(p['name'])}: {ann} = None")
+        for np in navs:
+            related = _last_segment(np['type'])
+            ann = "Optional[EntityList]" if np.get("collection", False) else f"Optional[{related}]"
+            arg_parts.append(f"{snake(np['name'])}: {ann} = None")
         arg_parts.append("**kwargs")
         arg_sig = ",\n\t\t\t\t ".join(arg_parts)
 
@@ -218,7 +222,15 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             lines.append(f"        self.{sn} = {sn}")
         for np in navs:
             sn = snake(np['name'])
-            lines.append(f"        self.{sn} = None")
+            related = _last_segment(np['type'])
+            if np.get("collection", False):
+                lines.append(f"        if {sn} is not None and not isinstance({sn}, EntityList):")
+                lines.append(f"            raise ValueError('{sn} should be of type EntityList!')")
+                lines.append(f"        self.{sn} = {sn}")
+            else:
+                lines.append(f"        if {sn} is not None and not isinstance({sn}, {related}):")
+                lines.append(f"            raise ValueError('{sn} should be of type {related}!')")
+                lines.append(f"        self.{sn} = {sn}")
         lines.append("")
 
         # Service propagation
