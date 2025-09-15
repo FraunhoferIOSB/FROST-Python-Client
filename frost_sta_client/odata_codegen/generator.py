@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Tuple
 
 from .parser import parse_metadata
 
+
 _EDM_TO_PY: Dict[str, str] = {
     "Edm.String": "str",
     "Edm.Int16": "int",
@@ -23,7 +24,6 @@ _EDM_TO_PY: Dict[str, str] = {
     "Edm.Duration": "str",
     "Edm.Binary": "bytes",
     "Edm.Stream": "bytes",
-    # OData/Geo/Open Types -> Any
     "Edm.Untyped": "Any",
     "Edm.Geometry": "Any",
     "Edm.Geography": "Any",
@@ -31,35 +31,48 @@ _EDM_TO_PY: Dict[str, str] = {
     "Edm.GeometryPoint": "Any",
 }
 
+
 def _last_segment(fqn: str) -> str:
     return fqn.split(".")[-1]
 
-def _py_type_for_type_ref(type_ref: str) -> str:
-    # For FQN types, return class name
-    if type_ref in _EDM_TO_PY:
-        return _EDM_TO_PY[type_ref]
-    # Assume FQN or already simple name -> return last segment
-    return _last_segment(type_ref)
-
-def _opt(type_str: str, nullable: bool) -> str:
-    if nullable:
-        return f"Optional[{type_str}]"
-    return type_str
-
-def _collection(type_str: str) -> str:
-    return f"List[{type_str}]"
 
 def _split_collection(type_str: str) -> Tuple[bool, str]:
     if type_str.startswith("Collection(") and type_str.endswith(")"):
         return True, type_str[len("Collection("):-1]
     return False, type_str
 
-def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "datamodel", source_url: str = "", odata_version: str = "") -> str:
-    """Generate Python code from OData metadata XML.
 
-    Returns the path to the created module file.
+def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "datamodel", source_url: str = "", odata_version: str = "") -> str:
+    """Generate Python source for the OData model; classes align with frost_sta_client.model patterns.
+
+    - Entities inherit from frost_sta_client.model.entity.Entity
+    - Navigation collections use frost_sta_client.model.ext.entity_list.EntityList
+    - __getstate__/__setstate__ follow SensorThings/OData JSON field names
+    - Equality mirrors base behaviour plus scalar/complex property checks
+    - Service propagation to child objects/lists is provided
+
+    Returns: absolute path of the generated module file.
     """
     model = parse_metadata(xml_text)
+
+    def snake(name: str) -> str:
+        # Convert PascalCase/camelCase to snake_case for attribute names
+        out: List[str] = []
+        prev_is_lower = False
+        for ch in name:
+            if ch.isupper():
+                if prev_is_lower:
+                    out.append('_')
+                out.append(ch.lower())
+                prev_is_lower = False
+            else:
+                out.append(ch)
+                prev_is_lower = ch.isalpha()
+        return ''.join(out)
+
+    def is_time_like(odata_name: str) -> bool:
+        # Common SensorThings time fields
+        return odata_name in {"phenomenonTime", "resultTime", "validTime", "time", "creationTime"}
 
     lines: List[str] = []
     lines.append("from __future__ import annotations")
@@ -68,99 +81,144 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         lines.append(f"# Source: {source_url}")
     if odata_version:
         lines.append(f"# OData Version: {odata_version}")
-    lines.append("from dataclasses import dataclass, field")
-    lines.append("from typing import Optional, List, Any")
-    lines.append("from enum import Enum")
+    lines.append("from typing import Any, List, Optional")
+    lines.append("from frost_sta_client import utils")
+    lines.append("from frost_sta_client.model.entity import Entity")
+    lines.append("from frost_sta_client.model.ext.entity_list import EntityList")
     lines.append("")
 
     exported: List[str] = []
 
-    # Type definitions as simple alias assignments
-    for fqn, td in model.get("type_defs", {}).items():
-        alias = td["name"]
-        underlying = _py_type_for_type_ref(td.get("underlying", "Edm.String"))
-        lines.append(f"{alias} = {underlying}")
-        exported.append(alias)
-    if model.get("type_defs"):
-        lines.append("")
-
-    # Enums
-    for fqn, enum in model.get("enum_types", {}).items():
-        en_name = enum["name"]
-        exported.append(en_name)
-        lines.append(f"class {en_name}(Enum):")
-        members = enum.get("members", [])
-        if not members:
-            lines.append("    pass")
-        else:
-            for mname, mval in members:
-                if mname is None:
-                    continue
-                if mval is None:
-                    lines.append(f"    {mname} = '{mname}'")
-                else:
-                    lines.append(f"    {mname} = {mval}")
-        lines.append("")
-
-    # Complex types
+    # Complex Types: Simple containers with (de)serialization and equality
     for fqn, cplx in model.get("complex_types", {}).items():
         c_name = cplx["name"]
         exported.append(c_name)
-        lines.append(f"@dataclass")
-        lines.append(f"class {c_name}:")
         props = cplx.get("properties", [])
+        args = ", ".join([f"{snake(p['name'])}: Optional[Any] = None" for p in props])
+        lines.append(f"class {c_name}:")
+        lines.append(f"    def __init__(self, {args}):" if args else "    def __init__(self):")
         if not props:
-            lines.append("    pass")
+            lines.append("        pass")
         else:
             for p in props:
-                raw_type = p.get("type", "Edm.String")
-                is_coll, inner = _split_collection(raw_type)
-                if is_coll:
-                    inner_py = _py_type_for_type_ref(inner)
-                    ptype = _collection(inner_py)
-                    lines.append(f"    {p['name']}: {ptype} = field(default_factory=list)")
-                else:
-                    ptype = _py_type_for_type_ref(raw_type)
-                    ptype = _opt(ptype, p.get("nullable", True))
-                    lines.append(f"    {p['name']}: {ptype} = None")
+                lines.append(f"        self.{snake(p['name'])} = {snake(p['name'])}")
+        lines.append("")
+        lines.append("    def __getstate__(self):")
+        lines.append("        d = {}")
+        for p in props:
+            on = p['name']
+            sn = snake(on)
+            lines.append(f"        if self.{sn} is not None:")
+            lines.append(f"            d['{on}'] = self.{sn}")
+        lines.append("        return d")
+        lines.append("")
+        lines.append("    def __setstate__(self, state):")
+        for p in props:
+            on = p['name']
+            sn = snake(on)
+            lines.append(f"        self.{sn} = state.get('{on}', None)")
+        lines.append("")
+        lines.append("    def __eq__(self, other):")
+        lines.append("        if other is None or not isinstance(other, type(self)):")
+        lines.append("            return False")
+        if props:
+            cmp_expr = " and ".join([f"self.{snake(p['name'])} == other.{snake(p['name'])}" for p in props])
+            lines.append(f"        return {cmp_expr}")
+        else:
+            lines.append("        return True")
         lines.append("")
 
-    # EntityTypes
+    # Entity Types: Entity-compatible classes
     for fqn, et in model.get("entity_types", {}).items():
         e_name = et["name"]
         exported.append(e_name)
-        lines.append(f"@dataclass")
-        lines.append(f"class {e_name}:")
         props = et.get("properties", [])
-        keys = set(et.get("keys", []))
-        has_any = False
-        # normal properties
+        navs = et.get("navigation_properties", [])
+
+        arg_parts: List[str] = []
         for p in props:
-            raw_type = p.get("type", "Edm.String")
-            is_coll, inner = _split_collection(raw_type)
-            if is_coll:
-                inner_py = _py_type_for_type_ref(inner)
-                nptype = _collection(inner_py)
-                lines.append(f"    {p['name']}: {nptype} = field(default_factory=list)")
+            arg_parts.append(f"{snake(p['name'])}: Optional[Any] = None")
+        arg_sig = ", ".join(arg_parts)
+
+        lines.append(f"class {e_name}(Entity):")
+        lines.append(f"    def __init__(self, {arg_sig}, **kwargs):" if arg_sig else "    def __init__(self, **kwargs):")
+        lines.append("        super().__init__(**kwargs)")
+        for p in props:
+            sn = snake(p['name'])
+            lines.append(f"        self.{sn} = {sn}")
+        for np in navs:
+            sn = snake(np['name'])
+            lines.append(f"        self.{sn} = None")
+        lines.append("")
+
+        # Service propagation
+        lines.append("    def ensure_service_on_children(self, service):")
+        if not navs:
+            lines.append("        pass")
+        else:
+            for np in navs:
+                sn = snake(np['name'])
+                lines.append(f"        if self.{sn} is not None:")
+                lines.append(f"            self.{sn}.set_service(service)")
+        lines.append("")
+
+        # Equality
+        lines.append("    def __eq__(self, other):")
+        lines.append("        if not super().__eq__(other):")
+        lines.append("            return False")
+        if props:
+            for p in props:
+                sn = snake(p['name'])
+                lines.append(f"        if self.{sn} != other.{sn}:")
+                lines.append("            return False")
+            lines.append("        return True")
+        else:
+            lines.append("        return True")
+        lines.append("")
+
+        # __getstate__
+        lines.append("    def __getstate__(self):")
+        lines.append("        data = super().__getstate__()")
+        for p in props:
+            on = p['name']
+            sn = snake(on)
+            lines.append(f"        if self.{sn} is not None:")
+            if is_time_like(on):
+                lines.append(f"            data['{on}'] = utils.parse_datetime(self.{sn})")
             else:
-                ptype = _py_type_for_type_ref(raw_type)
-                # Keys sind i.d.R. nicht nullable
-                nullable = p.get("nullable", True) and (p.get("name") not in keys)
-                ptype = _opt(ptype, nullable)
-                lines.append(f"    {p['name']}: {ptype} = None")
-            has_any = True
-        # navigation properties
-        for np in et.get("navigation_properties", []):
-            nptype = _py_type_for_type_ref(np.get("type", "Edm.EntityType"))
+                lines.append(f"            data['{on}'] = self.{sn}")
+        for np in navs:
+            on = np['name']
+            sn = snake(on)
             if np.get("collection", False):
-                nptype = _collection(nptype)
-                lines.append(f"    {np['name']}: {nptype} = field(default_factory=list)")
+                lines.append(f"        if self.{sn} is not None and len(self.{sn}.entities) > 0:")
+                lines.append(f"            data['{on}'] = self.{sn}.__getstate__()")
             else:
-                nptype = _opt(nptype, True)
-                lines.append(f"    {np['name']}: {nptype} = None")
-            has_any = True
-        if not has_any:
-            lines.append("    pass")
+                lines.append(f"        if self.{sn} is not None:")
+                lines.append(f"            data['{on}'] = self.{sn}.__getstate__()")
+        lines.append("        return data")
+        lines.append("")
+
+        # __setstate__
+        lines.append("    def __setstate__(self, state):")
+        lines.append("        super().__setstate__(state)")
+        for p in props:
+            on = p['name']
+            sn = snake(on)
+            lines.append(f"        self.{sn} = state.get('{on}', None)")
+        for np in navs:
+            on = np['name']
+            sn = snake(on)
+            related = _last_segment(np['type'])
+            if np.get("collection", False):
+                lines.append(f"        if state.get('{on}', None) is not None and isinstance(state['{on}'], list):")
+                lines.append(f"            self.{sn} = utils.transform_json_to_entity_list(state['{on}'], __name__ + '.{related}')")
+                lines.append(f"            self.{sn}.next_link = state.get('{on}@iot.nextLink', None)")
+                lines.append(f"            self.{sn}.count = state.get('{on}@iot.count', None)")
+            else:
+                lines.append(f"        if state.get('{on}', None) is not None:")
+                lines.append(f"            self.{sn} = {related}()")
+                lines.append(f"            self.{sn}.__setstate__(state['{on}'])")
         lines.append("")
 
     # EntitySets mapping
@@ -171,8 +229,8 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
     lines.append("}")
     lines.append("")
 
-    exported.extend(list(model.get("entity_sets", {}).keys()))
     # __all__
+    exported.extend(list(model.get("entity_sets", {}).keys()))
     lines.append("__all__ = [")
     for name in sorted(set(exported)):
         lines.append(f"    '{name}',")
@@ -185,20 +243,21 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         fh.write("\n".join(lines) + "\n")
     return out_path
 
-def generate_from_url(base_url: str, out_dir: str, module_name: str = "datamodel", auth: Any = None) -> str:
-    """Detect OData endpoint from base_url and generate models to out_dir/module_name.py.
 
-    Fallback: if no OData endpoint exists, use metadata.xml from the project directory.
+def generate_from_url(base_url: str, out_dir: str, module_name: str = "datamodel", auth: Any = None) -> str:
+    """Detect an OData endpoint and generate models accordingly.
+
+    Fallback: If no OData endpoint is available, use project's metadata.xml.
     """
     from .runtime import find_odata_endpoint, fetch_metadata
     info = find_odata_endpoint(base_url, auth=auth)
     if info is None:
-        # Fallback: local metadata.xml as default
         meta_path_candidates = [
             os.path.join(os.getcwd(), "metadata.xml"),
             os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "metadata.xml"),
         ]
         xml_text = None
+        source = None
         for p in meta_path_candidates:
             try:
                 if os.path.exists(p):
@@ -210,6 +269,6 @@ def generate_from_url(base_url: str, out_dir: str, module_name: str = "datamodel
                 pass
         if not xml_text:
             raise RuntimeError("No OData endpoint detected and metadata.xml not found. No code generated.")
-        return generate_from_metadata(xml_text, out_dir, module_name, source_url=source, odata_version="4.01")
+        return generate_from_metadata(xml_text, out_dir, module_name, source_url=source or "", odata_version="4.01")
     xml = fetch_metadata(info["metadata_url"], auth=auth)
     return generate_from_metadata(xml, out_dir, module_name, source_url=info["metadata_url"], odata_version=info["version"])
