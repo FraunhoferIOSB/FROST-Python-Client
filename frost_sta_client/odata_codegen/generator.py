@@ -190,14 +190,15 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
 
         arg_parts: List[str] = []
         # Build typed __init__ signature for entity types (EDM primitives get concrete types)
-        arg_parts: List[str] = []
+        arg_parts: List[str] = ["self"]
         for p in props:
             ann, _base_check, _is_coll = _to_py_hint(p['name'], p['type'], model)
             arg_parts.append(f"{snake(p['name'])}: {ann} = None")
+        arg_parts.append("**kwargs")
         arg_sig = ",\n\t\t\t\t ".join(arg_parts)
 
         lines.append(f"class {e_name}(Entity):")
-        lines.append(f"    def __init__(self, {arg_sig}, **kwargs):" if arg_sig else "    def __init__(self, **kwargs):")
+        lines.append(f"    def __init__({arg_sig}):")
         lines.append("        super().__init__(**kwargs)")
         # Runtime type checks for entity properties
         for p in props:
