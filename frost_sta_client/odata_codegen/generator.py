@@ -194,7 +194,7 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         for p in props:
             ann, _base_check, _is_coll = _to_py_hint(p['name'], p['type'], model)
             arg_parts.append(f"{snake(p['name'])}: {ann} = None")
-        arg_sig = ", ".join(arg_parts)
+        arg_sig = ",\n\t\t\t\t ".join(arg_parts)
 
         lines.append(f"class {e_name}(Entity):")
         lines.append(f"    def __init__(self, {arg_sig}, **kwargs):" if arg_sig else "    def __init__(self, **kwargs):")
