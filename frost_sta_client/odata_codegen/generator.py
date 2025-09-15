@@ -37,9 +37,37 @@ def _last_segment(fqn: str) -> str:
 
 
 def _split_collection(type_str: str) -> Tuple[bool, str]:
-    if type_str.startswith("Collection(") and type_str.endswith(")"):
-        return True, type_str[len("Collection("):-1]
-    return False, type_str
+def _resolve_underlying(type_str: str, model: Dict[str, Any]) -> str:
+    # If this is a TypeDefinition, resolve to its underlying EDM type; otherwise return as-is
+    if type_str in model.get("type_defs", {}):
+        return model["type_defs"][type_str].get("underlying", type_str)
+    return type_str
+
+def _to_py_hint(prop_name: str, type_str: str, model: Dict[str, Any]) -> Tuple[str, str, bool]:
+    """Return (annotation, base_for_check, is_collection).
+
+    - annotation: string used in function signature, e.g. Optional[str] or Optional[List[int]]
+    - base_for_check: runtime isinstance check target (e.g. str, int, ClassName) or 'Any' to skip
+    - is_collection: whether the type is a collection
+    """
+    is_coll, inner = _split_collection(type_str)
+    # Time-like fields accept multiple representations; keep them flexible as Any
+    if prop_name in {"phenomenonTime", "resultTime", "validTime", "time", "creationTime"}:
+        base_py = "Any"
+    else:
+        underlying = _resolve_underlying(inner, model)
+        if underlying.startswith("Edm."):
+            base_py = _EDM_TO_PY.get(underlying, "Any")
+        else:
+            last = _last_segment(underlying)
+            # Open types or unknown complex types should remain flexible
+            if last in {"Object", "ANY"}:
+                base_py = "Any"
+            else:
+                base_py = last
+    ann = f"Optional[List[{base_py}]]" if is_coll else f"Optional[{base_py}]"
+    return ann, base_py, is_coll
+
 
 
 def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "datamodel", source_url: str = "", odata_version: str = "") -> str:
@@ -94,14 +122,31 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         c_name = cplx["name"]
         exported.append(c_name)
         props = cplx.get("properties", [])
-        args = ", ".join([f"{snake(p['name'])}: Optional[Any] = None" for p in props])
+        # Build typed __init__ signature for complex types (EDM primitives get concrete types)
+        arg_parts = []
+        for p in props:
+            ann, _base_check, _is_coll = _to_py_hint(p['name'], p['type'], model)
+            arg_parts.append(f"{snake(p['name'])}: {ann} = None")
+        args = ", ".join(arg_parts)
         lines.append(f"class {c_name}:")
         lines.append(f"    def __init__(self, {args}):" if args else "    def __init__(self):")
         if not props:
             lines.append("        pass")
         else:
+            # Runtime type checks for complex type properties
             for p in props:
-                lines.append(f"        self.{snake(p['name'])} = {snake(p['name'])}")
+                on = p['name']
+                sn = snake(on)
+                _ann, base_check, is_coll = _to_py_hint(on, p['type'], model)
+                if base_check != "Any":
+                    if is_coll:
+                        lines.append(f"        if {sn} is not None:")
+                        lines.append(f"            if not isinstance({sn}, list) or not all(isinstance(x, {base_check}) for x in {sn}):")
+                        lines.append(f"                raise ValueError('{sn} should be a list of {base_check}')")
+                    else:
+                        lines.append(f"        if {sn} is not None and not isinstance({sn}, {base_check}):")
+                        lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
+                lines.append(f"        self.{sn} = {sn}")
         lines.append("")
         lines.append("    def __getstate__(self):")
         lines.append("        d = {}")
@@ -136,13 +181,29 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         navs = et.get("navigation_properties", [])
 
         arg_parts: List[str] = []
+        # Build typed __init__ signature for entity types (EDM primitives get concrete types)
+        arg_parts: List[str] = []
         for p in props:
-            arg_parts.append(f"{snake(p['name'])}: Optional[Any] = None")
+            ann, _base_check, _is_coll = _to_py_hint(p['name'], p['type'], model)
+            arg_parts.append(f"{snake(p['name'])}: {ann} = None")
         arg_sig = ", ".join(arg_parts)
 
         lines.append(f"class {e_name}(Entity):")
         lines.append(f"    def __init__(self, {arg_sig}, **kwargs):" if arg_sig else "    def __init__(self, **kwargs):")
         lines.append("        super().__init__(**kwargs)")
+        # Runtime type checks for entity properties
+        for p in props:
+            on = p['name']
+            sn = snake(on)
+            _ann, base_check, is_coll = _to_py_hint(on, p['type'], model)
+            if base_check != "Any":
+                if is_coll:
+                    lines.append(f"        if {sn} is not None:")
+                    lines.append(f"            if not isinstance({sn}, list) or not all(isinstance(x, {base_check}) for x in {sn}):")
+                    lines.append(f"                raise ValueError('{sn} should be a list of {base_check}')")
+                else:
+                    lines.append(f"        if {sn} is not None and not isinstance({sn}, {base_check}):")
+                    lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
         for p in props:
             sn = snake(p['name'])
             lines.append(f"        self.{sn} = {sn}")
