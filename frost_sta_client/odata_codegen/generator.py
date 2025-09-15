@@ -23,7 +23,12 @@ _EDM_TO_PY: Dict[str, str] = {
     "Edm.Duration": "str",
     "Edm.Binary": "bytes",
     "Edm.Stream": "bytes",
-    # Geo types and unknowns default to Any
+    # OData/Geo/Open Types -> Any
+    "Edm.Untyped": "Any",
+    "Edm.Geometry": "Any",
+    "Edm.Geography": "Any",
+    "Edm.GeographyPoint": "Any",
+    "Edm.GeometryPoint": "Any",
 }
 
 def _last_segment(fqn: str) -> str:
@@ -43,6 +48,11 @@ def _opt(type_str: str, nullable: bool) -> str:
 
 def _collection(type_str: str) -> str:
     return f"List[{type_str}]"
+
+def _split_collection(type_str: str) -> Tuple[bool, str]:
+    if type_str.startswith("Collection(") and type_str.endswith(")"):
+        return True, type_str[len("Collection("):-1]
+    return False, type_str
 
 def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "datamodel", source_url: str = "", odata_version: str = "") -> str:
     """Generate Python code from OData metadata XML.
@@ -64,6 +74,15 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
     lines.append("")
 
     exported: List[str] = []
+
+    # Type definitions as simple alias assignments
+    for fqn, td in model.get("type_defs", {}).items():
+        alias = td["name"]
+        underlying = _py_type_for_type_ref(td.get("underlying", "Edm.String"))
+        lines.append(f"{alias} = {underlying}")
+        exported.append(alias)
+    if model.get("type_defs"):
+        lines.append("")
 
     # Enums
     for fqn, enum in model.get("enum_types", {}).items():
@@ -94,12 +113,19 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             lines.append("    pass")
         else:
             for p in props:
-                ptype = _py_type_for_type_ref(p.get("type", "Edm.String"))
-                ptype = _opt(ptype, p.get("nullable", True))
-                lines.append(f"    {p['name']}: {ptype} = None")
+                raw_type = p.get("type", "Edm.String")
+                is_coll, inner = _split_collection(raw_type)
+                if is_coll:
+                    inner_py = _py_type_for_type_ref(inner)
+                    ptype = _collection(inner_py)
+                    lines.append(f"    {p['name']}: {ptype} = field(default_factory=list)")
+                else:
+                    ptype = _py_type_for_type_ref(raw_type)
+                    ptype = _opt(ptype, p.get("nullable", True))
+                    lines.append(f"    {p['name']}: {ptype} = None")
         lines.append("")
 
-    # Entity types
+    # EntityTypes
     for fqn, et in model.get("entity_types", {}).items():
         e_name = et["name"]
         exported.append(e_name)
@@ -108,13 +134,22 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         props = et.get("properties", [])
         keys = set(et.get("keys", []))
         has_any = False
+        # normal properties
         for p in props:
-            ptype = _py_type_for_type_ref(p.get("type", "Edm.String"))
-            # Keys are typically non-nullable
-            nullable = p.get("nullable", True) and (p.get("name") not in keys)
-            ptype = _opt(ptype, nullable)
-            lines.append(f"    {p['name']}: {ptype} = None")
+            raw_type = p.get("type", "Edm.String")
+            is_coll, inner = _split_collection(raw_type)
+            if is_coll:
+                inner_py = _py_type_for_type_ref(inner)
+                nptype = _collection(inner_py)
+                lines.append(f"    {p['name']}: {nptype} = field(default_factory=list)")
+            else:
+                ptype = _py_type_for_type_ref(raw_type)
+                # Keys sind i.d.R. nicht nullable
+                nullable = p.get("nullable", True) and (p.get("name") not in keys)
+                ptype = _opt(ptype, nullable)
+                lines.append(f"    {p['name']}: {ptype} = None")
             has_any = True
+        # navigation properties
         for np in et.get("navigation_properties", []):
             nptype = _py_type_for_type_ref(np.get("type", "Edm.EntityType"))
             if np.get("collection", False):
@@ -153,11 +188,28 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
 def generate_from_url(base_url: str, out_dir: str, module_name: str = "datamodel", auth: Any = None) -> str:
     """Detect OData endpoint from base_url and generate models to out_dir/module_name.py.
 
-    Returns the path to the created module file. Raises RuntimeError if no OData endpoint is found.
+    Fallback: if no OData endpoint exists, use metadata.xml from the project directory.
     """
     from .runtime import find_odata_endpoint, fetch_metadata
     info = find_odata_endpoint(base_url, auth=auth)
     if info is None:
-        raise RuntimeError("No OData endpoint detected. Falling back to SensorThings model (no code generated).")
+        # Fallback: local metadata.xml as default
+        meta_path_candidates = [
+            os.path.join(os.getcwd(), "metadata.xml"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "metadata.xml"),
+        ]
+        xml_text = None
+        for p in meta_path_candidates:
+            try:
+                if os.path.exists(p):
+                    with open(p, "r", encoding="utf-8") as fh:
+                        xml_text = fh.read()
+                        source = p
+                        break
+            except Exception:
+                pass
+        if not xml_text:
+            raise RuntimeError("No OData endpoint detected and metadata.xml not found. No code generated.")
+        return generate_from_metadata(xml_text, out_dir, module_name, source_url=source, odata_version="4.01")
     xml = fetch_metadata(info["metadata_url"], auth=auth)
     return generate_from_metadata(xml, out_dir, module_name, source_url=info["metadata_url"], odata_version=info["version"])

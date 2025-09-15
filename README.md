@@ -137,7 +137,7 @@ module is set to demjson3 per default. The backend can be modified by calling
 Optionally, you can generate Python source code for the OData data model exposed by a FROST-Server (if the OData plugin is enabled).
 
 - The generator tries ODATA_4.01 first, then ODATA_4.0 ($metadata).
-- If no OData endpoint is available, the client continues to use the existing SensorThings data model (no changes required).
+- If no OData endpoint is available, the generator falls back to the provided metadata.xml (default data model) and generates code from it.
 
 Usage:
 ```bash
@@ -146,4 +146,4 @@ frost-codegen --url http://localhost:8080/FROST-Server --out frost_sta_client/ge
 
 Notes:
 - The generated code is not used automatically; import and use it as needed.
-- This feature is fully backward-compatible.
+- This feature is backward-compatible. If you wish to replace the hand-written model with generated code, point --out to frost_sta_client/model and adapt imports accordingly.

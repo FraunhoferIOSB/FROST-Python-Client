@@ -34,7 +34,8 @@ def parse_metadata(xml_text: str) -> Dict[str, Any]:
             },
             'complex_types': { 'FQN': {...} },
             'enum_types': { 'FQN': {'name': str, 'namespace': str, 'members': [(name, value), ...]} },
-            'entity_sets': { 'Name': 'FQN' }
+            'entity_sets': { 'Name': 'FQN' },
+            'type_defs': { 'FQN': {'name': str, 'namespace': str, 'underlying': str} }
         }
     """
     try:
@@ -47,13 +48,14 @@ def parse_metadata(xml_text: str) -> Dict[str, Any]:
         "complex_types": {},
         "enum_types": {},
         "entity_sets": {},
+        "type_defs": {},
     }
 
     schemas = root.findall("./edmx:DataServices/edm:Schema", NS)
     for schema in schemas:
         namespace = schema.attrib.get("Namespace", "Default")
 
-        # Enums
+        # EnumTypes
         for enum in schema.findall("edm:EnumType", NS):
             en_name = enum.attrib.get("Name")
             if not en_name:
@@ -74,7 +76,20 @@ def parse_metadata(xml_text: str) -> Dict[str, Any]:
                 "members": members,
             }
 
-        # Complex types
+        # TypeDefinitions (aliases for EDM types)
+        for td in schema.findall("edm:TypeDefinition", NS):
+            td_name = td.attrib.get("Name")
+            underlying = td.attrib.get("UnderlyingType")
+            if not td_name or not underlying:
+                continue
+            fqn = f"{namespace}.{td_name}"
+            model["type_defs"][fqn] = {
+                "name": td_name,
+                "namespace": namespace,
+                "underlying": underlying,
+            }
+
+        # ComplexTypes
         for cplx in schema.findall("edm:ComplexType", NS):
             c_name = cplx.attrib.get("Name")
             if not c_name:
@@ -92,7 +107,7 @@ def parse_metadata(xml_text: str) -> Dict[str, Any]:
                 "properties": props,
             }
 
-        # Entity types
+        # EntityTypes
         for et in schema.findall("edm:EntityType", NS):
             e_name = et.attrib.get("Name")
             if not e_name:
@@ -125,7 +140,7 @@ def parse_metadata(xml_text: str) -> Dict[str, Any]:
                 "navigation_properties": navs,
             }
 
-        # Entity container -> EntitySets
+        # EntityContainer -> EntitySets
         for container in schema.findall("edm:EntityContainer", NS):
             for eset in container.findall("edm:EntitySet", NS):
                 es_name = eset.attrib.get("Name")
