@@ -37,6 +37,10 @@ def _last_segment(fqn: str) -> str:
 
 
 def _split_collection(type_str: str) -> Tuple[bool, str]:
+    s = (type_str or "").strip()
+    if s.startswith("Collection(") and s.endswith(")"):
+        return True, s[len("Collection("):-1]
+    return False, s
 
 
 def _resolve_underlying(type_str: str, model: Dict[str, Any]) -> str:
