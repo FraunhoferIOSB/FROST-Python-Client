@@ -79,7 +79,8 @@ def _to_py_hint(prop_name: str, type_str: str, model: Dict[str, Any]) -> Tuple[s
             base_py = "Any"
         else:
             base_py = last
-    ann = f"Optional[List[{base_py}]]" if is_coll else f"Optional[{base_py}]"
+    hint_base = "Union[datetime, str]" if underlying == "Edm.DateTimeOffset" else base_py
+    ann = f"Optional[List[{hint_base}]]" if is_coll else f"Optional[{hint_base}]"
     return ann, base_py, is_coll
 
 
@@ -166,7 +167,17 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             lines.append("")
             lines.append(f"    @{sn}.setter")
             lines.append(f"    def {sn}(self, value):")
-            if base_check != "Any":
+            is_coll_raw, inner_raw = _split_collection(p['type'])
+            if _is_edm_datetimeoffset(inner_raw, model):
+                if is_coll:
+                    lines.append(f"        if value is not None and (not isinstance(value, list) or not all(isinstance(x, (datetime, str)) for x in value)):")
+                    lines.append(f"            raise ValueError('{sn} should be a list of datetime or ISO-8601 string')")
+                    lines.append(f"        self._{sn} = value")
+                else:
+                    lines.append(f"        if value is not None and not isinstance(value, (datetime, str)):")
+                    lines.append(f"            raise ValueError('{sn} should be of type datetime or ISO-8601 string!')")
+                    lines.append(f"        self._{sn} = value")
+            elif base_check != "Any":
                 if is_coll:
                     lines.append(f"        if value is not None and (not isinstance(value, list) or not all(isinstance(x, {base_check}) for x in value)):")
                     lines.append(f"            raise ValueError('{sn} should be a list of {base_check}')")
@@ -262,7 +273,17 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             lines.append("")
             lines.append(f"    @{sn}.setter")
             lines.append(f"    def {sn}(self, value):")
-            if base_check != "Any":
+            is_coll_raw, inner_raw = _split_collection(p['type'])
+            if _is_edm_datetimeoffset(inner_raw, model):
+                if is_coll:
+                    lines.append(f"        if value is not None and (not isinstance(value, list) or not all(isinstance(x, (datetime, str)) for x in value)):")
+                    lines.append(f"            raise ValueError('{sn} should be a list of datetime or ISO-8601 string')")
+                    lines.append(f"        self._{sn} = value")
+                else:
+                    lines.append(f"        if value is not None and not isinstance(value, (datetime, str)):")
+                    lines.append(f"            raise ValueError('{sn} should be of type datetime or ISO-8601 string!')")
+                    lines.append(f"        self._{sn} = value")
+            elif base_check != "Any":
                 if is_coll:
                     lines.append(f"        if value is not None and (not isinstance(value, list) or not all(isinstance(x, {base_check}) for x in value)):")
                     lines.append(f"            raise ValueError('{sn} should be a list of {base_check}')")
