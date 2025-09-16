@@ -142,19 +142,9 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         if not props:
             lines.append("        pass")
         else:
-            # Runtime type checks for complex type properties
             for p in props:
                 on = p['name']
                 sn = snake(on)
-                _ann, base_check, is_coll = _to_py_hint(on, p['type'], model)
-                if base_check != "Any":
-                    if is_coll:
-                        lines.append(f"        if {sn} is not None:")
-                        lines.append(f"            if not isinstance({sn}, list) or not all(isinstance(x, {base_check}) for x in {sn}):")
-                        lines.append(f"                raise ValueError('{sn} should be a list of {base_check}')")
-                    else:
-                        lines.append(f"        if {sn} is not None and not isinstance({sn}, {base_check}):")
-                        lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
                 lines.append(f"        self.{sn} = {sn}")
         lines.append("")
 
@@ -230,33 +220,12 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         lines.append(f"class {e_name}(Entity):")
         lines.append(f"    def __init__({arg_sig}):")
         lines.append("        super().__init__(**kwargs)")
-        # Runtime type checks for entity properties
-        for p in props:
-            on = p['name']
-            sn = snake(on)
-            _ann, base_check, is_coll = _to_py_hint(on, p['type'], model)
-            if base_check != "Any":
-                if is_coll:
-                    lines.append(f"        if {sn} is not None:")
-                    lines.append(f"            if not isinstance({sn}, list) or not all(isinstance(x, {base_check}) for x in {sn}):")
-                    lines.append(f"                raise ValueError('{sn} should be a list of {base_check}')")
-                else:
-                    lines.append(f"        if {sn} is not None and not isinstance({sn}, {base_check}):")
-                    lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
         for p in props:
             sn = snake(p['name'])
             lines.append(f"        self.{sn} = {sn}")
         for np in navs:
             sn = snake(np['name'])
-            related = _last_segment(np['type'])
-            if np.get("collection", False):
-                lines.append(f"        if {sn} is not None and not isinstance({sn}, EntityList):")
-                lines.append(f"            raise ValueError('{sn} should be of type EntityList!')")
-                lines.append(f"        self.{sn} = {sn}")
-            else:
-                lines.append(f"        if {sn} is not None and not isinstance({sn}, {related}):")
-                lines.append(f"            raise ValueError('{sn} should be of type {related}!')")
-                lines.append(f"        self.{sn} = {sn}")
+            lines.append(f"        self.{sn} = {sn}")
         lines.append("")
 
         # Properties with getters/setters and type checks (skip 'id' which is handled by base Entity)
