@@ -50,6 +50,11 @@ def _resolve_underlying(type_str: str, model: Dict[str, Any]) -> str:
     return type_str
 
 
+def _is_real_complex(type_str: str, model: Dict[str, Any]) -> bool:
+    """Return True if type_str is a ComplexType (excluding open types like Object/ANY)."""
+    return type_str in model.get("complex_types", {}) and _last_segment(type_str) not in {"Object", "ANY"}
+
+
 def _to_py_hint(prop_name: str, type_str: str, model: Dict[str, Any]) -> Tuple[str, str, bool]:
     """Return (annotation, base_for_check, is_collection).
 
@@ -84,7 +89,8 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
     - __getstate__/__setstate__ follow SensorThings/OData JSON field names
     - Equality mirrors base behaviour plus scalar/complex property checks
     - Service propagation to child objects/lists is provided
-    - NEW: Generate property getters/setters with runtime type checks (incl. time-field validation)
+    - ComplexTypes are type with corresponding Python class in entity properties and type is enforced in setter methods.
+      Furthermore, ComplexTypes and collections are correctly (de)serialized in __getstate__/__setstate__.
 
     Returns: absolute path of the generated module file.
     """
@@ -126,7 +132,7 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
 
     exported: List[str] = []
 
-    # Complex Types: Simple containers with (de)serialization and equality
+    # Complex Types
     for fqn, cplx in model.get("complex_types", {}).items():
         c_name = cplx["name"]
         exported.append(c_name)
@@ -162,11 +168,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             if base_check != "Any":
                 if is_coll:
                     lines.append(f"        if value is not None and (not isinstance(value, list) or not all(isinstance(x, {base_check}) for x in value)):")
-                    lines.append(f"            raise ValueError('{sn} should be a list of {base_check}')")
+                    lines.append(f"            raise ValueError('{sn} sollte eine Liste von {base_check} sein')")
                     lines.append(f"        self._{sn} = value")
                 else:
                     lines.append(f"        if value is not None and not isinstance(value, {base_check}):")
-                    lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
+                    lines.append(f"            raise ValueError('{sn} sollte vom Typ {base_check} sein!')")
                     lines.append(f"        self._{sn} = value")
             else:
                 lines.append(f"        self._{sn} = value")
@@ -197,15 +203,13 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             lines.append("        return True")
         lines.append("")
 
-    # Entity Types: Entity-compatible classes
+    # Entity Types
     for fqn, et in model.get("entity_types", {}).items():
         e_name = et["name"]
         exported.append(e_name)
         props = et.get("properties", [])
         navs = et.get("navigation_properties", [])
 
-        arg_parts: List[str] = []
-        # Build typed __init__ signature for entity types (EDM primitives get concrete types)
         arg_parts: List[str] = ["self"]
         for p in props:
             ann, _base_check, _is_coll = _to_py_hint(p['name'], p['type'], model)
@@ -246,11 +250,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             elif base_check != "Any":
                 if is_coll:
                     lines.append(f"        if value is not None and (not isinstance(value, list) or not all(isinstance(x, {base_check}) for x in value)):")
-                    lines.append(f"            raise ValueError('{sn} should be a list of {base_check}')")
+                    lines.append(f"            raise ValueError('{sn} sollte eine Liste von {base_check} sein')")
                     lines.append(f"        self._{sn} = value")
                 else:
                     lines.append(f"        if value is not None and not isinstance(value, {base_check}):")
-                    lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
+                    lines.append(f"            raise ValueError('{sn} sollte vom Typ {base_check} sein!')")
                     lines.append(f"        self._{sn} = value")
             else:
                 lines.append(f"        self._{sn} = value")
@@ -272,11 +276,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             lines.append("            return")
             if np.get("collection", False):
                 lines.append(f"        if not isinstance(value, EntityList):")
-                lines.append(f"            raise ValueError('{sn} should be of type EntityList!')")
+                lines.append(f"            raise ValueError('{sn} sollte vom Typ EntityList sein!')")
                 lines.append(f"        self._{sn} = value")
             else:
                 lines.append(f"        if not isinstance(value, {related}):")
-                lines.append(f"            raise ValueError('{sn} should be of type {related}!')")
+                lines.append(f"            raise ValueError('{sn} sollte vom Typ {related} sein!')")
                 lines.append(f"        self._{sn} = value")
             lines.append("")
 
@@ -311,10 +315,18 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         for p in props:
             on = p['name']
             sn = snake(on)
-            lines.append(f"        if self.{sn} is not None:")
+            is_coll, inner = _split_collection(p['type'])
             if is_time_like(on):
+                lines.append(f"        if self.{sn} is not None:")
                 lines.append(f"            data['{on}'] = utils.parse_datetime(self.{sn})")
+            elif _is_real_complex(inner, model):
+                lines.append(f"        if self.{sn} is not None:")
+                if is_coll:
+                    lines.append(f"            data['{on}'] = [x.__getstate__() for x in self.{sn}]")
+                else:
+                    lines.append(f"            data['{on}'] = self.{sn}.__getstate__()")
             else:
+                lines.append(f"        if self.{sn} is not None:")
                 lines.append(f"            data['{on}'] = self.{sn}")
         for np in navs:
             on = np['name']
@@ -334,7 +346,31 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         for p in props:
             on = p['name']
             sn = snake(on)
-            lines.append(f"        self.{sn} = state.get('{on}', None)")
+            is_coll, inner = _split_collection(p['type'])
+            if _is_real_complex(inner, model):
+                related = _last_segment(inner)
+                if is_coll:
+                    lines.append(f"        if state.get('{on}', None) is not None and isinstance(state['{on}'], list):")
+                    lines.append(f"            tmp_{sn} = []")
+                    lines.append(f"            for _v in state['{on}']:")
+                    lines.append(f"                if isinstance(_v, dict):")
+                    lines.append(f"                    _obj = {related}()")
+                    lines.append(f"                    _obj.__setstate__(_v)")
+                    lines.append(f"                    tmp_{sn}.append(_obj)")
+                    lines.append(f"                else:")
+                    lines.append(f"                    tmp_{sn}.append(_v)")
+                    lines.append(f"            self.{sn} = tmp_{sn}")
+                    lines.append(f"        else:")
+                    lines.append(f"            self.{sn} = state.get('{on}', None)")
+                else:
+                    lines.append(f"        if state.get('{on}', None) is not None and isinstance(state['{on}'], dict):")
+                    lines.append(f"            _obj = {related}()")
+                    lines.append(f"            _obj.__setstate__(state['{on}'])")
+                    lines.append(f"            self.{sn} = _obj")
+                    lines.append(f"        else:")
+                    lines.append(f"            self.{sn} = state.get('{on}', None)")
+            else:
+                lines.append(f"        self.{sn} = state.get('{on}', None)")
         for np in navs:
             on = np['name']
             sn = snake(on)
