@@ -84,6 +84,7 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
     - __getstate__/__setstate__ follow SensorThings/OData JSON field names
     - Equality mirrors base behaviour plus scalar/complex property checks
     - Service propagation to child objects/lists is provided
+    - NEW: Generate property getters/setters with runtime type checks (incl. time-field validation)
 
     Returns: absolute path of the generated module file.
     """
@@ -156,6 +157,31 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                         lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
                 lines.append(f"        self.{sn} = {sn}")
         lines.append("")
+
+        # Properties with getters/setters and type checks for complex types
+        for p in props:
+            on = p['name']
+            sn = snake(on)
+            _ann, base_check, is_coll = _to_py_hint(on, p['type'], model)
+            lines.append("    @property")
+            lines.append(f"    def {sn}(self):")
+            lines.append(f"        return getattr(self, '_{sn}', None)")
+            lines.append("")
+            lines.append(f"    @{sn}.setter")
+            lines.append(f"    def {sn}(self, value):")
+            if base_check != "Any":
+                if is_coll:
+                    lines.append(f"        if value is not None and (not isinstance(value, list) or not all(isinstance(x, {base_check}) for x in value)):")
+                    lines.append(f"            raise ValueError('{sn} should be a list of {base_check}')")
+                    lines.append(f"        self._{sn} = value")
+                else:
+                    lines.append(f"        if value is not None and not isinstance(value, {base_check}):")
+                    lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
+                    lines.append(f"        self._{sn} = value")
+            else:
+                lines.append(f"        self._{sn} = value")
+            lines.append("")
+
         lines.append("    def __getstate__(self):")
         lines.append("        d = {}")
         for p in props:
@@ -232,6 +258,58 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                 lines.append(f"            raise ValueError('{sn} should be of type {related}!')")
                 lines.append(f"        self.{sn} = {sn}")
         lines.append("")
+
+        # Properties with getters/setters and type checks (skip 'id' which is handled by base Entity)
+        for p in props:
+            on = p['name']
+            sn = snake(on)
+            if sn == 'id':
+                continue
+            _ann, base_check, is_coll = _to_py_hint(on, p['type'], model)
+            lines.append("    @property")
+            lines.append(f"    def {sn}(self):")
+            lines.append(f"        return getattr(self, '_{sn}', None)")
+            lines.append("")
+            lines.append(f"    @{sn}.setter")
+            lines.append(f"    def {sn}(self, value):")
+            if is_time_like(on):
+                lines.append(f"        self._{sn} = utils.check_datetime(value, '{sn}')")
+            elif base_check != "Any":
+                if is_coll:
+                    lines.append(f"        if value is not None and (not isinstance(value, list) or not all(isinstance(x, {base_check}) for x in value)):")
+                    lines.append(f"            raise ValueError('{sn} should be a list of {base_check}')")
+                    lines.append(f"        self._{sn} = value")
+                else:
+                    lines.append(f"        if value is not None and not isinstance(value, {base_check}):")
+                    lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
+                    lines.append(f"        self._{sn} = value")
+            else:
+                lines.append(f"        self._{sn} = value")
+            lines.append("")
+
+        # Navigation properties with getters/setters and type checks
+        for np in navs:
+            on = np['name']
+            sn = snake(on)
+            related = _last_segment(np['type'])
+            lines.append("    @property")
+            lines.append(f"    def {sn}(self):")
+            lines.append(f"        return getattr(self, '_{sn}', None)")
+            lines.append("")
+            lines.append(f"    @{sn}.setter")
+            lines.append(f"    def {sn}(self, value):")
+            lines.append("        if value is None:")
+            lines.append(f"            self._{sn} = None")
+            lines.append("            return")
+            if np.get("collection", False):
+                lines.append(f"        if not isinstance(value, EntityList):")
+                lines.append(f"            raise ValueError('{sn} should be of type EntityList!')")
+                lines.append(f"        self._{sn} = value")
+            else:
+                lines.append(f"        if not isinstance(value, {related}):")
+                lines.append(f"            raise ValueError('{sn} should be of type {related}!')")
+                lines.append(f"        self._{sn} = value")
+            lines.append("")
 
         # Service propagation
         lines.append("    def ensure_service_on_children(self, service):")
