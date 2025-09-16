@@ -20,6 +20,7 @@ from dateutil.parser import isoparse
 import geojson
 import logging
 import sys
+import re
 import frost_sta_client.model.ext.entity_list
 
 
@@ -105,6 +106,143 @@ def parse_datetime(value) -> str:
     else:
         raise ValueError('time entities should consist of one or two datetimes')
 
+
+
+def parse_date(value) -> str:
+    """Return ISO-8601 date string from datetime.date or string input.
+
+    Accepts:
+    - datetime.date -> returns .isoformat()
+    - ISO date string (YYYY-MM-DD) -> validated and normalized
+    - None -> None
+    """
+    if value is None:
+        return value
+    if isinstance(value, str):
+        try:
+            d = datetime.date.fromisoformat(value)
+        except ValueError:
+            raise ValueError("If the date is provided as string, it should be in isoformat (YYYY-MM-DD)")
+        return d.isoformat()
+    if isinstance(value, datetime.date):
+        return value.isoformat()
+    raise ValueError("date entities should be datetime.date or ISO-8601 date string")
+
+
+def parse_time(value) -> str:
+    """Return ISO-8601 time string from datetime.time or string input.
+
+    Accepts:
+    - datetime.time -> returns .isoformat()
+    - ISO time string (HH:MM[:SS[.ffffff]]) -> validated and normalized
+    - None -> None
+    """
+    if value is None:
+        return value
+    if isinstance(value, str):
+        try:
+            t = datetime.time.fromisoformat(value)
+        except ValueError:
+            raise ValueError("If the time is provided as string, it should be in ISO-8601 time format (HH:MM[:SS[.ffffff]])")
+        return t.isoformat()
+    if isinstance(value, datetime.time):
+        return value.isoformat()
+    raise ValueError("time entities should be datetime.time or ISO-8601 time string")
+
+
+def duration_to_isoformat(td: datetime.timedelta) -> str:
+    """Convert a timedelta to an ISO-8601 duration string (PnDTnHnMnS)."""
+    if td == datetime.timedelta(0):
+        return "PT0S"
+    sign = "-" if td.total_seconds() < 0 else ""
+    total = abs(td.total_seconds())
+    days = int(total // 86400)
+    rem = total - days * 86400
+    hours = int(rem // 3600)
+    rem -= hours * 3600
+    minutes = int(rem // 60)
+    seconds_float = rem - minutes * 60
+    seconds = int(seconds_float)
+    microseconds = int(round((seconds_float - seconds) * 1_000_000))
+    # Normalize possible rounding overflow
+    if microseconds >= 1_000_000:
+        seconds += 1
+        microseconds -= 1_000_000
+    if seconds >= 60:
+        minutes += 1
+        seconds -= 60
+    if minutes >= 60:
+        hours += 1
+        minutes -= 60
+    if hours >= 24:
+        days += 1
+        hours -= 24
+    parts = []
+    if days:
+        parts.append(f"{days}D")
+    time_parts = []
+    if hours:
+        time_parts.append(f"{hours}H")
+    if minutes:
+        time_parts.append(f"{minutes}M")
+    if seconds or microseconds:
+        if microseconds:
+            sec_str = f"{seconds}.{microseconds:06d}".rstrip('0')
+        else:
+            sec_str = f"{seconds}"
+        time_parts.append(f"{sec_str}S")
+    if not parts and not time_parts:
+        return "PT0S"
+    if time_parts:
+        return f"{sign}P{''.join(parts)}T{''.join(time_parts)}"
+    return f"{sign}P{''.join(parts)}"
+
+
+def parse_duration_to_timedelta(value: str) -> datetime.timedelta:
+    """Parse an ISO-8601 duration (PnDTnHnMnS or PnW, optional sign) into a timedelta."""
+    if value is None:
+        return value
+    if not isinstance(value, str):
+        raise ValueError("duration must be provided as ISO-8601 string")
+    s = value.strip()
+    m = re.fullmatch(r'(?P<sign>[-+]?)P(?:(?P<weeks>\d+)W)?(?:(?P<days>\d+)D)?(?:T(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?(?:(?P<seconds>\d+(?:\.\d+)?)S)?)?', s)
+    if not m:
+        raise ValueError("Invalid ISO-8601 duration string")
+    sign = -1 if m.group('sign') == '-' else 1
+    weeks = int(m.group('weeks') or 0)
+    days = int(m.group('days') or 0)
+    hours = int(m.group('hours') or 0)
+    minutes = int(m.group('minutes') or 0)
+    sec_str = m.group('seconds')
+    if sec_str:
+        sec_float = float(sec_str)
+    else:
+        sec_float = 0.0
+    total_days = weeks * 7 + days
+    seconds = int(sec_float)
+    microseconds = int(round((sec_float - seconds) * 1_000_000))
+    td = datetime.timedelta(days=total_days, hours=hours, minutes=minutes, seconds=seconds, microseconds=microseconds)
+    if sign < 0:
+        return -td
+    return td
+
+
+def parse_duration(value) -> str:
+    """Return ISO-8601 duration string from timedelta or string input.
+
+    Accepts:
+    - datetime.timedelta -> converted to ISO-8601 duration
+    - ISO-8601 duration string -> validated and normalized
+    - None -> None
+    """
+    if value is None:
+        return value
+    if isinstance(value, datetime.timedelta):
+        return duration_to_isoformat(value)
+    if isinstance(value, str):
+        td = parse_duration_to_timedelta(value)
+        return duration_to_isoformat(td)
+    raise ValueError("duration entities should be timedelta or ISO-8601 duration string")
 
 def process_area(value):
     if not isinstance(value, dict):

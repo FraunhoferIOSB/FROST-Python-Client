@@ -60,6 +60,21 @@ def _is_edm_datetimeoffset(type_str: str, model: Dict[str, Any]) -> bool:
     underlying = _resolve_underlying(inner, model)
     return underlying == "Edm.DateTimeOffset"
 
+def _is_edm_date(type_str: str, model: Dict[str, Any]) -> bool:
+    is_coll, inner = _split_collection(type_str)
+    underlying = _resolve_underlying(inner, model)
+    return underlying == "Edm.Date"
+
+def _is_edm_time(type_str: str, model: Dict[str, Any]) -> bool:
+    is_coll, inner = _split_collection(type_str)
+    underlying = _resolve_underlying(inner, model)
+    return underlying == "Edm.TimeOfDay"
+
+def _is_edm_duration(type_str: str, model: Dict[str, Any]) -> bool:
+    is_coll, inner = _split_collection(type_str)
+    underlying = _resolve_underlying(inner, model)
+    return underlying == "Edm.Duration"
+
 
 def _to_py_hint(prop_name: str, type_str: str, model: Dict[str, Any]) -> Tuple[str, str, bool]:
     """Return (annotation, base_for_check, is_collection).
@@ -79,7 +94,16 @@ def _to_py_hint(prop_name: str, type_str: str, model: Dict[str, Any]) -> Tuple[s
             base_py = "Any"
         else:
             base_py = last
-    hint_base = "Union[datetime, str]" if underlying == "Edm.DateTimeOffset" else base_py
+    if underlying == "Edm.DateTimeOffset":
+        hint_base = "Union[datetime, str]"
+    elif underlying == "Edm.Date":
+        hint_base = "Union[date, str]"
+    elif underlying == "Edm.TimeOfDay":
+        hint_base = "Union[time, str]"
+    elif underlying == "Edm.Duration":
+        hint_base = "Union[timedelta, str]"
+    else:
+        hint_base = base_py
     ann = f"Optional[List[{hint_base}]]" if is_coll else f"Optional[{hint_base}]"
     return ann, base_py, is_coll
 
@@ -201,6 +225,102 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"                raise ValueError('{sn} should be an ISO-8601 string or datetime')")
                     lines.append(f"        else:")
                     lines.append(f"            raise ValueError('{sn} should be of type datetime or ISO-8601 string!')")
+            elif _is_edm_date(inner_raw, model):
+                if is_coll:
+                    lines.append(f"        if value is None:")
+                    lines.append(f"            self._{sn} = None")
+                    lines.append(f"            return")
+                    lines.append(f"        if not isinstance(value, list):")
+                    lines.append(f"            raise ValueError('{sn} should be a list of date or ISO-8601 date string (YYYY-MM-DD)')")
+                    lines.append(f"        tmp_{sn} = []")
+                    lines.append(f"        for _x in value:")
+                    lines.append(f"            if isinstance(_x, date):")
+                    lines.append(f"                tmp_{sn}.append(_x)")
+                    lines.append(f"            elif isinstance(_x, str):")
+                    lines.append(f"                try:")
+                    lines.append(f"                    tmp_{sn}.append(date.fromisoformat(_x))")
+                    lines.append(f"                except ValueError:")
+                    lines.append(f"                    raise ValueError('{sn} contains an invalid ISO-8601 date string')")
+                    lines.append(f"            else:")
+                    lines.append(f"                raise ValueError('{sn} should be a list of date or ISO-8601 date string (YYYY-MM-DD)')")
+                    lines.append(f"        self._{sn} = tmp_{sn}")
+                else:
+                    lines.append(f"        if value is None:")
+                    lines.append(f"            self._{sn} = None")
+                    lines.append(f"            return")
+                    lines.append(f"        if isinstance(value, date):")
+                    lines.append(f"            self._{sn} = value")
+                    lines.append(f"        elif isinstance(value, str):")
+                    lines.append(f"            try:")
+                    lines.append(f"                self._{sn} = date.fromisoformat(value)")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('{sn} should be an ISO-8601 date string (YYYY-MM-DD) or date')")
+                    lines.append(f"        else:")
+                    lines.append(f"            raise ValueError('{sn} should be of type date or ISO-8601 date string (YYYY-MM-DD)!')")
+            elif _is_edm_time(inner_raw, model):
+                if is_coll:
+                    lines.append(f"        if value is None:")
+                    lines.append(f"            self._{sn} = None")
+                    lines.append(f"            return")
+                    lines.append(f"        if not isinstance(value, list):")
+                    lines.append(f"            raise ValueError('{sn} should be a list of time or ISO-8601 time string')")
+                    lines.append(f"        tmp_{sn} = []")
+                    lines.append(f"        for _x in value:")
+                    lines.append(f"            if isinstance(_x, time):")
+                    lines.append(f"                tmp_{sn}.append(_x)")
+                    lines.append(f"            elif isinstance(_x, str):")
+                    lines.append(f"                try:")
+                    lines.append(f"                    tmp_{sn}.append(time.fromisoformat(_x))")
+                    lines.append(f"                except ValueError:")
+                    lines.append(f"                    raise ValueError('{sn} contains an invalid ISO-8601 time string')")
+                    lines.append(f"            else:")
+                    lines.append(f"                raise ValueError('{sn} should be a list of time or ISO-8601 time string')")
+                    lines.append(f"        self._{sn} = tmp_{sn}")
+                else:
+                    lines.append(f"        if value is None:")
+                    lines.append(f"            self._{sn} = None")
+                    lines.append(f"            return")
+                    lines.append(f"        if isinstance(value, time):")
+                    lines.append(f"            self._{sn} = value")
+                    lines.append(f"        elif isinstance(value, str):")
+                    lines.append(f"            try:")
+                    lines.append(f"                self._{sn} = time.fromisoformat(value)")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('{sn} should be an ISO-8601 time string or time')")
+                    lines.append(f"        else:")
+                    lines.append(f"            raise ValueError('{sn} should be of type time or ISO-8601 time string!')")
+            elif _is_edm_duration(inner_raw, model):
+                if is_coll:
+                    lines.append(f"        if value is None:")
+                    lines.append(f"            self._{sn} = None")
+                    lines.append(f"            return")
+                    lines.append(f"        if not isinstance(value, list):")
+                    lines.append(f"            raise ValueError('{sn} should be a list of timedelta or ISO-8601 duration string')")
+                    lines.append(f"        tmp_{sn} = []")
+                    lines.append(f"        for _x in value:")
+                    lines.append(f"            if isinstance(_x, timedelta):")
+                    lines.append(f"                tmp_{sn}.append(_x)")
+                    lines.append(f"            elif isinstance(_x, str):")
+                    lines.append(f"                try:")
+                    lines.append(f"                    tmp_{sn}.append(utils.parse_duration_to_timedelta(_x))")
+                    lines.append(f"                except ValueError:")
+                    lines.append(f"                    raise ValueError('{sn} contains an invalid ISO-8601 duration string')")
+                    lines.append(f"            else:")
+                    lines.append(f"                raise ValueError('{sn} should be a list of timedelta or ISO-8601 duration string')")
+                    lines.append(f"        self._{sn} = tmp_{sn}")
+                else:
+                    lines.append(f"        if value is None:")
+                    lines.append(f"            self._{sn} = None")
+                    lines.append(f"            return")
+                    lines.append(f"        if isinstance(value, timedelta):")
+                    lines.append(f"            self._{sn} = value")
+                    lines.append(f"        elif isinstance(value, str):")
+                    lines.append(f"            try:")
+                    lines.append(f"                self._{sn} = utils.parse_duration_to_timedelta(value)")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('{sn} should be an ISO-8601 duration string or timedelta')")
+                    lines.append(f"        else:")
+                    lines.append(f"            raise ValueError('{sn} should be of type timedelta or ISO-8601 duration string!')")
             elif base_check != "Any":
                 if is_coll:
                     lines.append(f"        if value is not None and (not isinstance(value, list) or not all(isinstance(x, {base_check}) for x in value)):")
@@ -226,6 +346,24 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"            d['{on}'] = [utils.parse_datetime(x) for x in self.{sn}]")
                 else:
                     lines.append(f"            d['{on}'] = utils.parse_datetime(self.{sn})")
+            elif _is_edm_date(inner, model):
+                lines.append(f"        if self.{sn} is not None:")
+                if is_coll:
+                    lines.append(f"            d['{on}'] = [utils.parse_date(x) for x in self.{sn}]")
+                else:
+                    lines.append(f"            d['{on}'] = utils.parse_date(self.{sn})")
+            elif _is_edm_time(inner, model):
+                lines.append(f"        if self.{sn} is not None:")
+                if is_coll:
+                    lines.append(f"            d['{on}'] = [utils.parse_time(x) for x in self.{sn}]")
+                else:
+                    lines.append(f"            d['{on}'] = utils.parse_time(self.{sn})")
+            elif _is_edm_duration(inner, model):
+                lines.append(f"        if self.{sn} is not None:")
+                if is_coll:
+                    lines.append(f"            d['{on}'] = [utils.parse_duration(x) for x in self.{sn}]")
+                else:
+                    lines.append(f"            d['{on}'] = utils.parse_duration(self.{sn})")
             else:
                 lines.append(f"        if self.{sn} is not None:")
                 lines.append(f"            d['{on}'] = self.{sn}")
@@ -262,6 +400,90 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"                self.{sn} = isoparse(_tmp)")
                     lines.append(f"            except ValueError:")
                     lines.append(f"                raise ValueError('invalid ISO-8601 string for {sn}')")
+                    lines.append(f"        else:")
+                    lines.append(f"            self.{sn} = _tmp")
+            elif _is_edm_date(inner, model):
+                if is_coll:
+                    lines.append(f"        if state.get('{on}', None) is not None and isinstance(state['{on}'], list):")
+                    lines.append(f"            tmp_{sn} = []")
+                    lines.append(f"            for _v in state['{on}']:")
+                    lines.append(f"                if isinstance(_v, date):")
+                    lines.append(f"                    tmp_{sn}.append(_v)")
+                    lines.append(f"                elif isinstance(_v, str):")
+                    lines.append(f"                    try:")
+                    lines.append(f"                        tmp_{sn}.append(date.fromisoformat(_v))")
+                    lines.append(f"                    except ValueError:")
+                    lines.append(f"                        raise ValueError('invalid ISO-8601 date string for {sn}')")
+                    lines.append(f"                else:")
+                    lines.append(f"                    raise ValueError('invalid value for {sn}')")
+                    lines.append(f"            self.{sn} = tmp_{sn}")
+                    lines.append(f"        else:")
+                    lines.append(f"            self.{sn} = state.get('{on}', None)")
+                else:
+                    lines.append(f"        _tmp = state.get('{on}', None)")
+                    lines.append(f"        if isinstance(_tmp, date):")
+                    lines.append(f"            self.{sn} = _tmp")
+                    lines.append(f"        elif isinstance(_tmp, str):")
+                    lines.append(f"            try:")
+                    lines.append(f"                self.{sn} = date.fromisoformat(_tmp)")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('invalid ISO-8601 date string for {sn}')")
+                    lines.append(f"        else:")
+                    lines.append(f"            self.{sn} = _tmp")
+            elif _is_edm_time(inner, model):
+                if is_coll:
+                    lines.append(f"        if state.get('{on}', None) is not None and isinstance(state['{on}'], list):")
+                    lines.append(f"            tmp_{sn} = []")
+                    lines.append(f"            for _v in state['{on}']:")
+                    lines.append(f"                if isinstance(_v, time):")
+                    lines.append(f"                    tmp_{sn}.append(_v)")
+                    lines.append(f"                elif isinstance(_v, str):")
+                    lines.append(f"                    try:")
+                    lines.append(f"                        tmp_{sn}.append(time.fromisoformat(_v))")
+                    lines.append(f"                    except ValueError:")
+                    lines.append(f"                        raise ValueError('invalid ISO-8601 time string for {sn}')")
+                    lines.append(f"                else:")
+                    lines.append(f"                    raise ValueError('invalid value for {sn}')")
+                    lines.append(f"            self.{sn} = tmp_{sn}")
+                    lines.append(f"        else:")
+                    lines.append(f"            self.{sn} = state.get('{on}', None)")
+                else:
+                    lines.append(f"        _tmp = state.get('{on}', None)")
+                    lines.append(f"        if isinstance(_tmp, time):")
+                    lines.append(f"            self.{sn} = _tmp")
+                    lines.append(f"        elif isinstance(_tmp, str):")
+                    lines.append(f"            try:")
+                    lines.append(f"                self.{sn} = time.fromisoformat(_tmp)")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('invalid ISO-8601 time string for {sn}')")
+                    lines.append(f"        else:")
+                    lines.append(f"            self.{sn} = _tmp")
+            elif _is_edm_duration(inner, model):
+                if is_coll:
+                    lines.append(f"        if state.get('{on}', None) is not None and isinstance(state['{on}'], list):")
+                    lines.append(f"            tmp_{sn} = []")
+                    lines.append(f"            for _v in state['{on}']:")
+                    lines.append(f"                if isinstance(_v, timedelta):")
+                    lines.append(f"                    tmp_{sn}.append(_v)")
+                    lines.append(f"                elif isinstance(_v, str):")
+                    lines.append(f"                    try:")
+                    lines.append(f"                        tmp_{sn}.append(utils.parse_duration_to_timedelta(_v))")
+                    lines.append(f"                    except ValueError:")
+                    lines.append(f"                        raise ValueError('invalid ISO-8601 duration string for {sn}')")
+                    lines.append(f"                else:")
+                    lines.append(f"                    raise ValueError('invalid value for {sn}')")
+                    lines.append(f"            self.{sn} = tmp_{sn}")
+                    lines.append(f"        else:")
+                    lines.append(f"            self.{sn} = state.get('{on}', None)")
+                else:
+                    lines.append(f"        _tmp = state.get('{on}', None)")
+                    lines.append(f"        if isinstance(_tmp, timedelta):")
+                    lines.append(f"            self.{sn} = _tmp")
+                    lines.append(f"        elif isinstance(_tmp, str):")
+                    lines.append(f"            try:")
+                    lines.append(f"                self.{sn} = utils.parse_duration_to_timedelta(_tmp)")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('invalid ISO-8601 duration string for {sn}')")
                     lines.append(f"        else:")
                     lines.append(f"            self.{sn} = _tmp")
             else:
@@ -352,6 +574,102 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"                raise ValueError('{sn} should be an ISO-8601 string or datetime')")
                     lines.append(f"        else:")
                     lines.append(f"            raise ValueError('{sn} should be of type datetime or ISO-8601 string!')")
+            elif _is_edm_date(inner_raw, model):
+                if is_coll:
+                    lines.append(f"        if value is None:")
+                    lines.append(f"            self._{sn} = None")
+                    lines.append(f"            return")
+                    lines.append(f"        if not isinstance(value, list):")
+                    lines.append(f"            raise ValueError('{sn} should be a list of date or ISO-8601 date string (YYYY-MM-DD)')")
+                    lines.append(f"        tmp_{sn} = []")
+                    lines.append(f"        for _x in value:")
+                    lines.append(f"            if isinstance(_x, date):")
+                    lines.append(f"                tmp_{sn}.append(_x)")
+                    lines.append(f"            elif isinstance(_x, str):")
+                    lines.append(f"                try:")
+                    lines.append(f"                    tmp_{sn}.append(date.fromisoformat(_x))")
+                    lines.append(f"                except ValueError:")
+                    lines.append(f"                    raise ValueError('{sn} contains an invalid ISO-8601 date string')")
+                    lines.append(f"            else:")
+                    lines.append(f"                raise ValueError('{sn} should be a list of date or ISO-8601 date string (YYYY-MM-DD)')")
+                    lines.append(f"        self._{sn} = tmp_{sn}")
+                else:
+                    lines.append(f"        if value is None:")
+                    lines.append(f"            self._{sn} = None")
+                    lines.append(f"            return")
+                    lines.append(f"        if isinstance(value, date):")
+                    lines.append(f"            self._{sn} = value")
+                    lines.append(f"        elif isinstance(value, str):")
+                    lines.append(f"            try:")
+                    lines.append(f"                self._{sn} = date.fromisoformat(value)")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('{sn} should be an ISO-8601 date string (YYYY-MM-DD) or date')")
+                    lines.append(f"        else:")
+                    lines.append(f"            raise ValueError('{sn} should be of type date or ISO-8601 date string (YYYY-MM-DD)!')")
+            elif _is_edm_time(inner_raw, model):
+                if is_coll:
+                    lines.append(f"        if value is None:")
+                    lines.append(f"            self._{sn} = None")
+                    lines.append(f"            return")
+                    lines.append(f"        if not isinstance(value, list):")
+                    lines.append(f"            raise ValueError('{sn} should be a list of time or ISO-8601 time string')")
+                    lines.append(f"        tmp_{sn} = []")
+                    lines.append(f"        for _x in value:")
+                    lines.append(f"            if isinstance(_x, time):")
+                    lines.append(f"                tmp_{sn}.append(_x)")
+                    lines.append(f"            elif isinstance(_x, str):")
+                    lines.append(f"                try:")
+                    lines.append(f"                    tmp_{sn}.append(time.fromisoformat(_x))")
+                    lines.append(f"                except ValueError:")
+                    lines.append(f"                    raise ValueError('{sn} contains an invalid ISO-8601 time string')")
+                    lines.append(f"            else:")
+                    lines.append(f"                raise ValueError('{sn} should be a list of time or ISO-8601 time string')")
+                    lines.append(f"        self._{sn} = tmp_{sn}")
+                else:
+                    lines.append(f"        if value is None:")
+                    lines.append(f"            self._{sn} = None")
+                    lines.append(f"            return")
+                    lines.append(f"        if isinstance(value, time):")
+                    lines.append(f"            self._{sn} = value")
+                    lines.append(f"        elif isinstance(value, str):")
+                    lines.append(f"            try:")
+                    lines.append(f"                self._{sn} = time.fromisoformat(value)")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('{sn} should be an ISO-8601 time string or time')")
+                    lines.append(f"        else:")
+                    lines.append(f"            raise ValueError('{sn} should be of type time or ISO-8601 time string!')")
+            elif _is_edm_duration(inner_raw, model):
+                if is_coll:
+                    lines.append(f"        if value is None:")
+                    lines.append(f"            self._{sn} = None")
+                    lines.append(f"            return")
+                    lines.append(f"        if not isinstance(value, list):")
+                    lines.append(f"            raise ValueError('{sn} should be a list of timedelta or ISO-8601 duration string')")
+                    lines.append(f"        tmp_{sn} = []")
+                    lines.append(f"        for _x in value:")
+                    lines.append(f"            if isinstance(_x, timedelta):")
+                    lines.append(f"                tmp_{sn}.append(_x)")
+                    lines.append(f"            elif isinstance(_x, str):")
+                    lines.append(f"                try:")
+                    lines.append(f"                    tmp_{sn}.append(utils.parse_duration_to_timedelta(_x))")
+                    lines.append(f"                except ValueError:")
+                    lines.append(f"                    raise ValueError('{sn} contains an invalid ISO-8601 duration string')")
+                    lines.append(f"            else:")
+                    lines.append(f"                raise ValueError('{sn} should be a list of timedelta or ISO-8601 duration string')")
+                    lines.append(f"        self._{sn} = tmp_{sn}")
+                else:
+                    lines.append(f"        if value is None:")
+                    lines.append(f"            self._{sn} = None")
+                    lines.append(f"            return")
+                    lines.append(f"        if isinstance(value, timedelta):")
+                    lines.append(f"            self._{sn} = value")
+                    lines.append(f"        elif isinstance(value, str):")
+                    lines.append(f"            try:")
+                    lines.append(f"                self._{sn} = utils.parse_duration_to_timedelta(value)")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('{sn} should be an ISO-8601 duration string or timedelta')")
+                    lines.append(f"        else:")
+                    lines.append(f"            raise ValueError('{sn} should be of type timedelta or ISO-8601 duration string!')")
             elif base_check != "Any":
                 if is_coll:
                     lines.append(f"        if value is not None and (not isinstance(value, list) or not all(isinstance(x, {base_check}) for x in value)):")
@@ -440,6 +758,24 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"            data['{on}'] = [utils.parse_datetime(x) for x in self.{sn}]")
                 else:
                     lines.append(f"            data['{on}'] = utils.parse_datetime(self.{sn})")
+            elif _is_edm_date(inner, model):
+                lines.append(f"        if self.{sn} is not None:")
+                if is_coll:
+                    lines.append(f"            data['{on}'] = [utils.parse_date(x) for x in self.{sn}]")
+                else:
+                    lines.append(f"            data['{on}'] = utils.parse_date(self.{sn})")
+            elif _is_edm_time(inner, model):
+                lines.append(f"        if self.{sn} is not None:")
+                if is_coll:
+                    lines.append(f"            data['{on}'] = [utils.parse_time(x) for x in self.{sn}]")
+                else:
+                    lines.append(f"            data['{on}'] = utils.parse_time(self.{sn})")
+            elif _is_edm_duration(inner, model):
+                lines.append(f"        if self.{sn} is not None:")
+                if is_coll:
+                    lines.append(f"            data['{on}'] = [utils.parse_duration(x) for x in self.{sn}]")
+                else:
+                    lines.append(f"            data['{on}'] = utils.parse_duration(self.{sn})")
             else:
                 lines.append(f"        if self.{sn} is not None:")
                 lines.append(f"            data['{on}'] = self.{sn}")
@@ -508,6 +844,84 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"                self.{sn} = isoparse(_tmp)")
                     lines.append(f"            except ValueError:")
                     lines.append(f"                raise ValueError('invalid ISO-8601 string for {sn}')")
+                    lines.append(f"        else:")
+                    lines.append(f"            self.{sn} = _tmp")
+            elif _is_edm_date(inner, model):
+                if is_coll:
+                    lines.append(f"        if state.get('{on}', None) is not None and isinstance(state['{on}'], list):")
+                    lines.append(f"            tmp_{sn} = []")
+                    lines.append(f"            for _v in state['{on}']:")
+                    lines.append(f"                if isinstance(_v, date):")
+                    lines.append(f"                    tmp_{sn}.append(_v)")
+                    lines.append(f"                elif isinstance(_v, str):")
+                    lines.append(f"                    try:")
+                    lines.append(f"                        tmp_{sn}.append(date.fromisoformat(_v))")
+                    lines.append(f"                    except ValueError:")
+                    lines.append(f"                        raise ValueError('invalid ISO-8601 date string for {sn}')")
+                    lines.append(f"                else:")
+                    lines.append(f"                    raise ValueError('invalid value for {sn}')")
+                    lines.append(f"            self.{sn} = tmp_{sn}")
+                else:
+                    lines.append(f"        _tmp = state.get('{on}', None)")
+                    lines.append(f"        if isinstance(_tmp, date):")
+                    lines.append(f"            self.{sn} = _tmp")
+                    lines.append(f"        elif isinstance(_tmp, str):")
+                    lines.append(f"            try:")
+                    lines.append(f"                self.{sn} = date.fromisoformat(_tmp)")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('invalid ISO-8601 date string for {sn}')")
+                    lines.append(f"        else:")
+                    lines.append(f"            self.{sn} = _tmp")
+            elif _is_edm_time(inner, model):
+                if is_coll:
+                    lines.append(f"        if state.get('{on}', None) is not None and isinstance(state['{on}'], list):")
+                    lines.append(f"            tmp_{sn} = []")
+                    lines.append(f"            for _v in state['{on}']:")
+                    lines.append(f"                if isinstance(_v, time):")
+                    lines.append(f"                    tmp_{sn}.append(_v)")
+                    lines.append(f"                elif isinstance(_v, str):")
+                    lines.append(f"                    try:")
+                    lines.append(f"                        tmp_{sn}.append(time.fromisoformat(_v))")
+                    lines.append(f"                    except ValueError:")
+                    lines.append(f"                        raise ValueError('invalid ISO-8601 time string for {sn}')")
+                    lines.append(f"                else:")
+                    lines.append(f"                    raise ValueError('invalid value for {sn}')")
+                    lines.append(f"            self.{sn} = tmp_{sn}")
+                else:
+                    lines.append(f"        _tmp = state.get('{on}', None)")
+                    lines.append(f"        if isinstance(_tmp, time):")
+                    lines.append(f"            self.{sn} = _tmp")
+                    lines.append(f"        elif isinstance(_tmp, str):")
+                    lines.append(f"            try:")
+                    lines.append(f"                self.{sn} = time.fromisoformat(_tmp)")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('invalid ISO-8601 time string for {sn}')")
+                    lines.append(f"        else:")
+                    lines.append(f"            self.{sn} = _tmp")
+            elif _is_edm_duration(inner, model):
+                if is_coll:
+                    lines.append(f"        if state.get('{on}', None) is not None and isinstance(state['{on}'], list):")
+                    lines.append(f"            tmp_{sn} = []")
+                    lines.append(f"            for _v in state['{on}']:")
+                    lines.append(f"                if isinstance(_v, timedelta):")
+                    lines.append(f"                    tmp_{sn}.append(_v)")
+                    lines.append(f"                elif isinstance(_v, str):")
+                    lines.append(f"                    try:")
+                    lines.append(f"                        tmp_{sn}.append(utils.parse_duration_to_timedelta(_v))")
+                    lines.append(f"                    except ValueError:")
+                    lines.append(f"                        raise ValueError('invalid ISO-8601 duration string for {sn}')")
+                    lines.append(f"                else:")
+                    lines.append(f"                    raise ValueError('invalid value for {sn}')")
+                    lines.append(f"            self.{sn} = tmp_{sn}")
+                else:
+                    lines.append(f"        _tmp = state.get('{on}', None)")
+                    lines.append(f"        if isinstance(_tmp, timedelta):")
+                    lines.append(f"            self.{sn} = _tmp")
+                    lines.append(f"        elif isinstance(_tmp, str):")
+                    lines.append(f"            try:")
+                    lines.append(f"                self.{sn} = utils.parse_duration_to_timedelta(_tmp)")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('invalid ISO-8601 duration string for {sn}')")
                     lines.append(f"        else:")
                     lines.append(f"            self.{sn} = _tmp")
             else:
