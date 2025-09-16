@@ -122,7 +122,7 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         lines.append(f"# Source: {source_url}")
     if odata_version:
         lines.append(f"# OData Version: {odata_version}")
-    lines.append("from typing import Any, List, Optional")
+    lines.append("from typing import Any, List, Optional, Union")
     lines.append("from datetime import datetime, date, time, timedelta")
     lines.append("from decimal import Decimal")
     lines.append("from uuid import UUID")
@@ -233,7 +233,7 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             arg_parts.append(f"{snake(p['name'])}: {ann} = None")
         for np in navs:
             related = _last_segment(np['type'])
-            ann = "Optional[EntityList]" if np.get("collection", False) else f"Optional[{related}]"
+            ann = f"Optional[Union[EntityList[{related}], List[{related}]]]" if np.get("collection", False) else f"Optional[{related}]"
             arg_parts.append(f"{snake(np['name'])}: {ann} = None")
         arg_parts.append("**kwargs")
         arg_sig = ",\n\t\t\t\t ".join(arg_parts)
@@ -290,9 +290,16 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             lines.append(f"            self._{sn} = None")
             lines.append("            return")
             if np.get("collection", False):
-                lines.append(f"        if not isinstance(value, EntityList):")
-                lines.append(f"            raise ValueError('{sn} should be of type EntityList!')")
-                lines.append(f"        self._{sn} = value")
+                lines.append(f"        if isinstance(value, EntityList):")
+                lines.append(f"            if not all(isinstance(x, {related}) for x in value.entities):")
+                lines.append(f"                raise ValueError('{sn} should be an EntityList of {related}')")
+                lines.append(f"            self._{sn} = value")
+                lines.append(f"        elif isinstance(value, list):")
+                lines.append(f"            if not all(isinstance(x, {related}) for x in value):")
+                lines.append(f"                raise ValueError('{sn} should be a List of {related}')")
+                lines.append(f"            self._{sn} = EntityList(__name__ + '.{related}', value)")
+                lines.append(f"        else:")
+                lines.append(f"            raise ValueError('{sn} should be of type EntityList[{related}] or List[{related}]!')")
             else:
                 lines.append(f"        if not isinstance(value, {related}):")
                 lines.append(f"            raise ValueError('{sn} should be of type {related}!')")

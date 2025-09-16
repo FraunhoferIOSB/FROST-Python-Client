@@ -17,10 +17,12 @@
 import logging
 import requests
 import frost_sta_client
+from typing import Callable, Generic, Iterator, List, Optional, TypeVar
+T = TypeVar('T')
 
 
-class EntityList:
-    def __init__(self, entity_class, entities=None):
+class EntityList(Generic[T]):
+    def __init__(self, entity_class: str, entities: Optional[List[T]] = None) -> None:
         if entities is None:
             entities = []
         self.entities = entities
@@ -41,11 +43,11 @@ class EntityList:
             new_entity_list.__dict__[key] = value
         return new_entity_list
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[T]:
         self.iterable_entities = iter(enumerate(self.entities))
         return self
 
-    def __next__(self):
+    def __next__(self) -> T:
         idx, next_entity = next(self.iterable_entities, (None, None))
         # Only trigger callback when returning a real entity, not on sentinel indices
         if next_entity is None:
@@ -77,7 +79,7 @@ class EntityList:
         return next_entity
         raise StopIteration
 
-    def get(self, index):
+    def get(self, index: int) -> T:
         if not isinstance(index, int):
             raise IndexError('index must be an integer')
         if index >= len(self.entities):
@@ -87,53 +89,53 @@ class EntityList:
         return self.entities[index]
 
     @property
-    def entity_class(self):
+    def entity_class(self) -> str:
         return self._entity_class
 
     @entity_class.setter
-    def entity_class(self, value):
+    def entity_class(self, value: str) -> None:
         if isinstance(value, str):
             self._entity_class = value
             return
         raise ValueError('entity_class should be of type str')
 
     @property
-    def entities(self):
+    def entities(self) -> List[T]:
         return self._entities
 
     @entities.setter
-    def entities(self, values):
+    def entities(self, values: List[T]) -> None:
         if isinstance(values, list) and all(isinstance(v, frost_sta_client.model.entity.Entity) for v in values):
             self._entities = values
             return
         raise ValueError('entities should be a list of entities')
 
     @property
-    def callback(self):
+    def callback(self) -> Optional[Callable[[int], None]]:
         return self._callback
 
     @callback.setter
-    def callback(self, callback):
+    def callback(self, callback: Optional[Callable[[int], None]]) -> None:
         if callable(callback) or callback is None:
             self._callback = callback
 
     @property
-    def step_size(self):
+    def step_size(self) -> Optional[int]:
         return self._step_size
 
     @step_size.setter
-    def step_size(self, value):
+    def step_size(self, value: Optional[int]) -> None:
         if isinstance(value, int) or value is None:
             self._step_size = value
             return
         raise ValueError('step_size should be of type int')
 
     @property
-    def next_link(self):
+    def next_link(self) -> Optional[str]:
         return self._next_link
 
     @next_link.setter
-    def next_link(self, value):
+    def next_link(self, value: Optional[str]) -> None:
         if value is None or isinstance(value, str):
             self._next_link = value
             return
