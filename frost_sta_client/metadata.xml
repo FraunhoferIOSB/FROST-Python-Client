@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <edmx:Edmx xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" Version="4.01">
   <edmx:DataServices>
     <Schema xmlns="http://docs.oasis-open.org/odata/ns/edm" Namespace="de.FROST">
@@ -6,176 +6,175 @@
         <Key>
           <PropertyRef Name="id"/>
         </Key>
-        <Property Name="id" Type="Edm.Int64"/>
-        <Property Name="name" Type="Edm.String"/>
-        <Property Name="description" Type="Edm.String"/>
-        <Property Name="encodingType" Type="Edm.String"/>
-        <Property Name="metadata" Type="Edm.String"/>
-        <Property Name="properties" Type="de.FROST.Object" Nullable="true"/>
-        <NavigationProperty Name="TaskingCapabilities" Type="Collection(de.FROST.TaskingCapability)" Nullable="true" Partner="Actuator"/>
+        <Property Name="id" Type="Edm.Int64" Nullable="false"/>
+        <Property Name="name" Type="Edm.String" Nullable="false"/>
+        <Property Name="description" Type="Edm.String" Nullable="false"/>
+        <Property Name="encodingType" Type="Edm.String" Nullable="false"/>
+        <Property Name="metadata" Type="Edm.String" Nullable="false"/>
+        <Property Name="properties" Type="de.FROST.Object"/>
+        <NavigationProperty Name="TaskingCapabilities" Type="Collection(de.FROST.TaskingCapability)" Nullable="false" Partner="Actuator"/>
       </EntityType>
       <EntityType Name="Datastream">
         <Key>
           <PropertyRef Name="id"/>
         </Key>
-        <Property Name="id" Type="Edm.Int64"/>
-        <Property Name="name" Type="Edm.String"/>
-        <Property Name="description" Type="Edm.String"/>
-        <Property Name="observationType" Type="Edm.String"/>
-        <Property Name="unitOfMeasurement" Type="de.FROST.UnitOfMeasurement"/>
-        <Property Name="observedArea" Type="Edm.Geometry" Nullable="true"/>
-        <Property Name="phenomenonTime" Type="de.FROST.TM_Period" Nullable="true"/>
-        <Property Name="properties" Type="de.FROST.Object" Nullable="true"/>
-        <Property Name="resultTime" Type="de.FROST.TM_Period" Nullable="true"/>
-        <NavigationProperty Name="Observations" Type="Collection(de.FROST.Observation)" Nullable="true" Partner="Datastream"/>
-        <NavigationProperty Name="ObservedProperty" Type="de.FROST.ObservedProperty" Partner="Datastreams"/>
-        <NavigationProperty Name="Sensor" Type="de.FROST.Sensor" Partner="Datastreams"/>
-        <NavigationProperty Name="Thing" Type="de.FROST.Thing" Partner="Datastreams"/>
+        <Property Name="id" Type="Edm.Int64" Nullable="false"/>
+        <Property Name="name" Type="Edm.String" Nullable="false"/>
+        <Property Name="description" Type="Edm.String" Nullable="false"/>
+        <Property Name="observationType" Type="Edm.String" Nullable="false"/>
+        <Property Name="unitOfMeasurement" Type="de.FROST.UnitOfMeasurement" Nullable="false"/>
+        <Property Name="observedArea" Type="Edm.Geometry"/>
+        <Property Name="phenomenonTime" Type="de.FROST.TM_Period"/>
+        <Property Name="properties" Type="de.FROST.Object"/>
+        <Property Name="resultTime" Type="de.FROST.TM_Period"/>
+        <NavigationProperty Name="Observations" Type="Collection(de.FROST.Observation)" Nullable="false" Partner="Datastream"/>
+        <NavigationProperty Name="ObservedProperty" Type="de.FROST.ObservedProperty" Nullable="false" Partner="Datastreams"/>
+        <NavigationProperty Name="Sensor" Type="de.FROST.Sensor" Nullable="false" Partner="Datastreams"/>
+        <NavigationProperty Name="Thing" Type="de.FROST.Thing" Nullable="false" Partner="Datastreams"/>
       </EntityType>
       <EntityType Name="FeatureOfInterest">
         <Key>
           <PropertyRef Name="id"/>
         </Key>
-        <Property Name="id" Type="Edm.Int64"/>
-        <Property Name="name" Type="Edm.String"/>
-        <Property Name="description" Type="Edm.String"/>
-        <Property Name="encodingType" Type="Edm.String"/>
-        <Property Name="feature" Type="de.FROST.Geometry"/>
-        <Property Name="properties" Type="de.FROST.Object" Nullable="true"/>
-        <NavigationProperty Name="Observations" Type="Collection(de.FROST.Observation)" Nullable="true" Partner="FeatureOfInterest"/>
+        <Property Name="id" Type="Edm.Int64" Nullable="false"/>
+        <Property Name="name" Type="Edm.String" Nullable="false"/>
+        <Property Name="description" Type="Edm.String" Nullable="false"/>
+        <Property Name="encodingType" Type="Edm.String" Nullable="false"/>
+        <Property Name="feature" Type="de.FROST.Geometry" Nullable="false"/>
+        <Property Name="properties" Type="de.FROST.Object"/>
+        <NavigationProperty Name="Observations" Type="Collection(de.FROST.Observation)" Nullable="false" Partner="FeatureOfInterest"/>
       </EntityType>
       <EntityType Name="HistoricalLocation">
         <Key>
           <PropertyRef Name="id"/>
         </Key>
-        <Property Name="id" Type="Edm.Int64"/>
-        <Property Name="time" Type="Edm.DateTimeOffset"/>
-        <NavigationProperty Name="Locations" Type="Collection(de.FROST.Location)" Nullable="true" Partner="HistoricalLocations"/>
-        <NavigationProperty Name="Thing" Type="de.FROST.Thing" Partner="HistoricalLocations"/>
+        <Property Name="id" Type="Edm.Int64" Nullable="false"/>
+        <Property Name="time" Type="Edm.DateTimeOffset" Nullable="false"/>
+        <NavigationProperty Name="Locations" Type="Collection(de.FROST.Location)" Nullable="false" Partner="HistoricalLocations"/>
+        <NavigationProperty Name="Thing" Type="de.FROST.Thing" Nullable="false" Partner="HistoricalLocations"/>
       </EntityType>
       <EntityType Name="Location">
         <Key>
           <PropertyRef Name="id"/>
         </Key>
-        <Property Name="id" Type="Edm.Int64"/>
-        <Property Name="name" Type="Edm.String"/>
-        <Property Name="description" Type="Edm.String"/>
-        <Property Name="encodingType" Type="Edm.String"/>
-        <Property Name="location" Type="de.FROST.Geometry"/>
-        <Property Name="properties" Type="de.FROST.Object" Nullable="true"/>
-        <NavigationProperty Name="HistoricalLocations" Type="Collection(de.FROST.HistoricalLocation)" Nullable="true" Partner="Locations"/>
-        <NavigationProperty Name="Things" Type="Collection(de.FROST.Thing)" Nullable="true" Partner="Locations"/>
+        <Property Name="id" Type="Edm.Int64" Nullable="false"/>
+        <Property Name="name" Type="Edm.String" Nullable="false"/>
+        <Property Name="description" Type="Edm.String" Nullable="false"/>
+        <Property Name="encodingType" Type="Edm.String" Nullable="false"/>
+        <Property Name="location" Type="de.FROST.Geometry" Nullable="false"/>
+        <Property Name="properties" Type="de.FROST.Object"/>
+        <NavigationProperty Name="HistoricalLocations" Type="Collection(de.FROST.HistoricalLocation)" Nullable="false" Partner="Locations"/>
+        <NavigationProperty Name="Things" Type="Collection(de.FROST.Thing)" Nullable="false" Partner="Locations"/>
       </EntityType>
       <EntityType Name="MultiDatastream">
         <Key>
           <PropertyRef Name="id"/>
         </Key>
-        <Property Name="id" Type="Edm.Int64"/>
-        <Property Name="name" Type="Edm.String"/>
-        <Property Name="description" Type="Edm.String"/>
-        <Property Name="observationType" Type="Edm.String"/>
-        <Property Name="multiObservationDataTypes" Type="Collection(Edm.String)"/>
-        <Property Name="unitOfMeasurements" Type="Collection(de.FROST.UnitOfMeasurement)"/>
-        <Property Name="observedArea" Type="Edm.Geometry" Nullable="true"/>
-        <Property Name="phenomenonTime" Type="de.FROST.TM_Period" Nullable="true"/>
-        <Property Name="properties" Type="de.FROST.Object" Nullable="true"/>
-        <Property Name="resultTime" Type="de.FROST.TM_Period" Nullable="true"/>
-        <NavigationProperty Name="Observations" Type="Collection(de.FROST.Observation)" Nullable="true" Partner="MultiDatastream"/>
-        <NavigationProperty Name="ObservedProperties" Type="Collection(de.FROST.ObservedProperty)" Nullable="true" Partner="MultiDatastreams"/>
-        <NavigationProperty Name="Sensor" Type="de.FROST.Sensor" Partner="MultiDatastreams"/>
-        <NavigationProperty Name="Thing" Type="de.FROST.Thing" Partner="MultiDatastreams"/>
+        <Property Name="id" Type="Edm.Int64" Nullable="false"/>
+        <Property Name="name" Type="Edm.String" Nullable="false"/>
+        <Property Name="description" Type="Edm.String" Nullable="false"/>
+        <Property Name="observationType" Type="Edm.String" Nullable="false"/>
+        <Property Name="multiObservationDataTypes" Type="Collection(Edm.String)" Nullable="false"/>
+        <Property Name="unitOfMeasurements" Type="Collection(de.FROST.UnitOfMeasurement)" Nullable="false"/>
+        <Property Name="observedArea" Type="Edm.Geometry"/>
+        <Property Name="phenomenonTime" Type="de.FROST.TM_Period"/>
+        <Property Name="properties" Type="de.FROST.Object"/>
+        <Property Name="resultTime" Type="de.FROST.TM_Period"/>
+        <NavigationProperty Name="Observations" Type="Collection(de.FROST.Observation)" Nullable="false" Partner="MultiDatastream"/>
+        <NavigationProperty Name="ObservedProperties" Type="Collection(de.FROST.ObservedProperty)" Nullable="false" Partner="MultiDatastreams"/>
+        <NavigationProperty Name="Sensor" Type="de.FROST.Sensor" Nullable="false" Partner="MultiDatastreams"/>
+        <NavigationProperty Name="Thing" Type="de.FROST.Thing" Nullable="false" Partner="MultiDatastreams"/>
       </EntityType>
       <EntityType Name="Observation">
         <Key>
           <PropertyRef Name="id"/>
         </Key>
-        <Property Name="id" Type="Edm.Int64"/>
-        <Property Name="phenomenonTime" Type="de.FROST.TM_Object"/>
-        <Property Name="resultTime" Type="Edm.DateTimeOffset" Nullable="true"/>
-        <Property Name="result" Type="Edm.Untyped" Nullable="true"/>
-        <Property Name="resultQuality" Type="de.FROST.ANY" Nullable="true"/>
-        <Property Name="validTime" Type="de.FROST.TM_Period" Nullable="true"/>
-        <Property Name="parameters" Type="de.FROST.Object" Nullable="true"/>
+        <Property Name="id" Type="Edm.Int64" Nullable="false"/>
+        <Property Name="phenomenonTime" Type="de.FROST.TM_Object" Nullable="false"/>
+        <Property Name="resultTime" Type="Edm.DateTimeOffset"/>
+        <Property Name="result" Type="Edm.Untyped"/>
+        <Property Name="resultQuality" Type="Edm.Untyped"/>
+        <Property Name="validTime" Type="de.FROST.TM_Period"/>
+        <Property Name="parameters" Type="de.FROST.Object"/>
         <NavigationProperty Name="Datastream" Type="de.FROST.Datastream" Nullable="false" Partner="Observations"/>
-        <NavigationProperty Name="FeatureOfInterest" Type="de.FROST.FeatureOfInterest" Nullable="true" Partner="Observations"/>
-        <NavigationProperty Name="MultiDatastream" Type="de.FROST.MultiDatastream" Nullable="true" Partner="Observations"/>
+        <NavigationProperty Name="FeatureOfInterest" Type="de.FROST.FeatureOfInterest" Partner="Observations"/>
+        <NavigationProperty Name="MultiDatastream" Type="de.FROST.MultiDatastream" Partner="Observations"/>
       </EntityType>
       <EntityType Name="ObservedProperty">
         <Key>
           <PropertyRef Name="id"/>
         </Key>
-        <Property Name="id" Type="Edm.Int64"/>
-        <Property Name="name" Type="Edm.String"/>
-        <Property Name="definition" Type="Edm.String"/>
-        <Property Name="description" Type="Edm.String"/>
-        <Property Name="properties" Type="de.FROST.Object" Nullable="true"/>
-        <NavigationProperty Name="Datastreams" Type="Collection(de.FROST.Datastream)" Nullable="true" Partner="ObservedProperty"/>
-        <NavigationProperty Name="MultiDatastreams" Type="Collection(de.FROST.MultiDatastream)" Nullable="true" Partner="ObservedProperties"/>
+        <Property Name="id" Type="Edm.Int64" Nullable="false"/>
+        <Property Name="name" Type="Edm.String" Nullable="false"/>
+        <Property Name="definition" Type="Edm.String" Nullable="false"/>
+        <Property Name="description" Type="Edm.String" Nullable="false"/>
+        <Property Name="properties" Type="de.FROST.Object"/>
+        <NavigationProperty Name="Datastreams" Type="Collection(de.FROST.Datastream)" Nullable="false" Partner="ObservedProperty"/>
+        <NavigationProperty Name="MultiDatastreams" Type="Collection(de.FROST.MultiDatastream)" Nullable="false" Partner="ObservedProperties"/>
       </EntityType>
       <EntityType Name="Sensor">
         <Key>
           <PropertyRef Name="id"/>
         </Key>
-        <Property Name="id" Type="Edm.Int64"/>
-        <Property Name="name" Type="Edm.String"/>
-        <Property Name="description" Type="Edm.String"/>
-        <Property Name="encodingType" Type="Edm.String"/>
-        <Property Name="metadata" Type="Edm.String"/>
-        <Property Name="properties" Type="de.FROST.Object" Nullable="true"/>
-        <NavigationProperty Name="Datastreams" Type="Collection(de.FROST.Datastream)" Nullable="true" Partner="Sensor"/>
-        <NavigationProperty Name="MultiDatastreams" Type="Collection(de.FROST.MultiDatastream)" Nullable="true" Partner="Sensor"/>
+        <Property Name="id" Type="Edm.Int64" Nullable="false"/>
+        <Property Name="name" Type="Edm.String" Nullable="false"/>
+        <Property Name="description" Type="Edm.String" Nullable="false"/>
+        <Property Name="encodingType" Type="Edm.String" Nullable="false"/>
+        <Property Name="metadata" Type="Edm.String" Nullable="false"/>
+        <Property Name="properties" Type="de.FROST.Object"/>
+        <NavigationProperty Name="Datastreams" Type="Collection(de.FROST.Datastream)" Nullable="false" Partner="Sensor"/>
+        <NavigationProperty Name="MultiDatastreams" Type="Collection(de.FROST.MultiDatastream)" Nullable="false" Partner="Sensor"/>
       </EntityType>
       <EntityType Name="Task">
         <Key>
           <PropertyRef Name="id"/>
         </Key>
-        <Property Name="id" Type="Edm.Int64"/>
-        <Property Name="creationTime" Type="Edm.DateTimeOffset"/>
-        <Property Name="taskingParameters" Type="de.FROST.Object"/>
-        <NavigationProperty Name="TaskingCapability" Type="de.FROST.TaskingCapability" Partner="Tasks"/>
+        <Property Name="id" Type="Edm.Int64" Nullable="false"/>
+        <Property Name="creationTime" Type="Edm.DateTimeOffset" Nullable="false"/>
+        <Property Name="taskingParameters" Type="de.FROST.Object" Nullable="false"/>
+        <NavigationProperty Name="TaskingCapability" Type="de.FROST.TaskingCapability" Nullable="false" Partner="Tasks"/>
       </EntityType>
       <EntityType Name="TaskingCapability">
         <Key>
           <PropertyRef Name="id"/>
         </Key>
-        <Property Name="id" Type="Edm.Int64"/>
-        <Property Name="name" Type="Edm.String"/>
-        <Property Name="description" Type="Edm.String"/>
-        <Property Name="properties" Type="de.FROST.Object" Nullable="true"/>
-        <Property Name="taskingParameters" Type="de.FROST.Object"/>
-        <NavigationProperty Name="Actuator" Type="de.FROST.Actuator" Partner="TaskingCapabilities"/>
-        <NavigationProperty Name="Tasks" Type="Collection(de.FROST.Task)" Nullable="true" Partner="TaskingCapability"/>
-        <NavigationProperty Name="Thing" Type="de.FROST.Thing" Partner="TaskingCapabilities"/>
+        <Property Name="id" Type="Edm.Int64" Nullable="false"/>
+        <Property Name="name" Type="Edm.String" Nullable="false"/>
+        <Property Name="description" Type="Edm.String" Nullable="false"/>
+        <Property Name="properties" Type="de.FROST.Object"/>
+        <Property Name="taskingParameters" Type="de.FROST.Object" Nullable="false"/>
+        <NavigationProperty Name="Actuator" Type="de.FROST.Actuator" Nullable="false" Partner="TaskingCapabilities"/>
+        <NavigationProperty Name="Tasks" Type="Collection(de.FROST.Task)" Nullable="false" Partner="TaskingCapability"/>
+        <NavigationProperty Name="Thing" Type="de.FROST.Thing" Nullable="false" Partner="TaskingCapabilities"/>
       </EntityType>
       <EntityType Name="Thing">
         <Key>
           <PropertyRef Name="id"/>
         </Key>
-        <Property Name="id" Type="Edm.Int64"/>
-        <Property Name="name" Type="Edm.String"/>
-        <Property Name="description" Type="Edm.String"/>
-        <Property Name="properties" Type="de.FROST.Object" Nullable="true"/>
-        <NavigationProperty Name="HistoricalLocations" Type="Collection(de.FROST.HistoricalLocation)" Nullable="true" Partner="Thing"/>
-        <NavigationProperty Name="Locations" Type="Collection(de.FROST.Location)" Nullable="true" Partner="Things"/>
-        <NavigationProperty Name="MultiDatastreams" Type="Collection(de.FROST.MultiDatastream)" Nullable="true" Partner="Thing"/>
-        <NavigationProperty Name="TaskingCapabilities" Type="Collection(de.FROST.TaskingCapability)" Nullable="true" Partner="Thing"/>
-        <NavigationProperty Name="Datastreams" Type="Collection(de.FROST.Datastream)" Nullable="true" Partner="Thing"/>
+        <Property Name="id" Type="Edm.Int64" Nullable="false"/>
+        <Property Name="name" Type="Edm.String" Nullable="false"/>
+        <Property Name="description" Type="Edm.String" Nullable="false"/>
+        <Property Name="properties" Type="de.FROST.Object"/>
+        <NavigationProperty Name="HistoricalLocations" Type="Collection(de.FROST.HistoricalLocation)" Nullable="false" Partner="Thing"/>
+        <NavigationProperty Name="Locations" Type="Collection(de.FROST.Location)" Nullable="false" Partner="Things"/>
+        <NavigationProperty Name="MultiDatastreams" Type="Collection(de.FROST.MultiDatastream)" Nullable="false" Partner="Thing"/>
+        <NavigationProperty Name="TaskingCapabilities" Type="Collection(de.FROST.TaskingCapability)" Nullable="false" Partner="Thing"/>
+        <NavigationProperty Name="Datastreams" Type="Collection(de.FROST.Datastream)" Nullable="false" Partner="Thing"/>
       </EntityType>
-      <ComplexType Name="ANY" OpenType="true"/>
       <TypeDefinition Name="Geometry" UnderlyingType="Edm.Geometry"/>
       <ComplexType Name="Object" OpenType="true"/>
       <ComplexType Name="TM_Object" OpenType="false">
         <Property Name="start" Type="Edm.DateTimeOffset" Nullable="false"/>
-        <Property Name="end" Type="Edm.DateTimeOffset" Nullable="true"/>
+        <Property Name="end" Type="Edm.DateTimeOffset"/>
       </ComplexType>
       <ComplexType Name="TM_Period" OpenType="false">
         <Property Name="start" Type="Edm.DateTimeOffset" Nullable="false"/>
         <Property Name="end" Type="Edm.DateTimeOffset" Nullable="false"/>
       </ComplexType>
       <ComplexType Name="UnitOfMeasurement" OpenType="false">
-        <Property Name="name" Type="Edm.String" Nullable="true"/>
-        <Property Name="definition" Type="Edm.String" Nullable="true"/>
-        <Property Name="symbol" Type="Edm.String" Nullable="true"/>
+        <Property Name="name" Type="Edm.String"/>
+        <Property Name="definition" Type="Edm.String"/>
+        <Property Name="symbol" Type="Edm.String"/>
       </ComplexType>
       <EntityContainer Name="FrostService">
         <EntitySet Name="Actuators" EntityType="de.FROST.Actuator">
