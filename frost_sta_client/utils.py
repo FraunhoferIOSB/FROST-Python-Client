@@ -21,6 +21,7 @@ import geojson
 import logging
 import sys
 import re
+from typing import Any, Dict, List
 import frost_sta_client.model.ext.entity_list
 
 
@@ -42,24 +43,110 @@ def class_from_string(string):
     module_name, class_name = string.rsplit(".", 1)
     return getattr(sys.modules[module_name], class_name)
 
+def _flatten_time_value(val):
+    if isinstance(val, dict):
+        start = val.get('start') or val.get('Start')
+        end = val.get('end') or val.get('End')
+        if start and end:
+            return f"{start}/{end}"
+        if start:
+            return start
+    return val
+
+def normalize_sta_odata_json(obj: Any) -> Any:
+    """Normalize SensorThings v1.1 and OData (4.0/4.01) JSON to STA-style keys.
+
+    - Ensure '@iot.id' and '@iot.selfLink' are present (mapping id/@id/@odata.id).
+    - Map nextLink and count to '@iot.nextLink' and '@iot.count'.
+    - Map '*@odata.navigationLink' and '*@navigationLink' to '*@iot.navigationLink'.
+    - Map '*@odata.count' and '*@count' to '*@iot.count'.
+    - Convert phenomenonTime/resultTime/validTime objects {start,end} to 'start/end' strings.
+    - Recurse into nested dicts and lists.
+    """
+    if isinstance(obj, list):
+        return [normalize_sta_odata_json(x) for x in obj]
+    if not isinstance(obj, dict):
+        return obj
+
+    src: Dict[str, Any] = obj
+    dst: Dict[str, Any] = {}
+
+    # Pre-read metadata that we may fold into STA fields later
+    meta_id = src.get('@iot.id')
+    if meta_id is None:
+        if 'id' in src and not isinstance(src.get('id'), dict):
+            meta_id = src.get('id')
+    meta_self_link = src.get('@iot.selfLink') or src.get('@odata.id') or src.get('@id')
+
+    for k, v in src.items():
+        # Skip fields we normalize separately
+        if k in ('@odata.id', '@id', 'id'):
+            continue
+        if k in ('@odata.context', '@context'):
+            continue
+
+        # Top-level links and counts
+        if k in ('@iot.nextLink', '@odata.nextLink', '@nextLink'):
+            dst['@iot.nextLink'] = v
+            continue
+        if k in ('@iot.count', '@odata.count', '@count'):
+            dst['@iot.count'] = v
+            continue
+
+        # Navigation link/count on collections
+        if k.endswith('@odata.navigationLink'):
+            base = k[:-len('@odata.navigationLink')]
+            dst[f'{base}@iot.navigationLink'] = v
+            continue
+        if k.endswith('@navigationLink') and not k.endswith('@iot.navigationLink'):
+            base = k[:-len('@navigationLink')]
+            dst[f'{base}@iot.navigationLink'] = v
+            continue
+        if k.endswith('@odata.count'):
+            base = k[:-len('@odata.count')]
+            dst[f'{base}@iot.count'] = v
+            continue
+        if k.endswith('@count') and not k.endswith('@iot.count'):
+            base = k[:-len('@count')]
+            dst[f'{base}@iot.count'] = v
+            continue
+
+        # Recurse on nested structures
+        if k == 'value' and isinstance(v, list):
+            dst['value'] = [normalize_sta_odata_json(x) for x in v]
+            continue
+        nv = normalize_sta_odata_json(v) if isinstance(v, (dict, list)) else v
+        dst[k] = nv
+
+    # Add normalized id/selfLink if available
+    if meta_id is not None:
+        dst['@iot.id'] = meta_id
+    if meta_self_link is not None:
+        dst['@iot.selfLink'] = meta_self_link
+
+    # Normalize time objects for known time fields
+    for tk in ('phenomenonTime', 'resultTime', 'validTime'):
+        if tk in dst:
+            dst[tk] = _flatten_time_value(dst[tk])
+
+    return dst
+
 def transform_json_to_entity(json_response, entity_class):
     cl = class_from_string(entity_class)
     obj = cl()
-    obj.__setstate__(json_response)
+    normalized = normalize_sta_odata_json(json_response)
+    obj.__setstate__(normalized)
     return obj
 
 def transform_json_to_entity_list(json_response, entity_class):
     entity_list = frost_sta_client.model.ext.entity_list.EntityList(entity_class)
-    result_list = []
     if isinstance(json_response, dict):
-        try:
-            response_list = json_response['value']
-            entity_list.next_link = json_response.get("@iot.nextLink", None)
-            entity_list.count = json_response.get("@iot.count", None)
-        except AttributeError as e:
-            raise e
+        normalized = normalize_sta_odata_json(json_response)
+        response_list = normalized.get('value', [])
+        entity_list.next_link = normalized.get("@iot.nextLink", None)
+        entity_list.count = normalized.get("@iot.count", None)
     elif isinstance(json_response, list):
-        response_list = json_response
+        response_list = [normalize_sta_odata_json(item) for item in json_response]
     else:
         raise ValueError("expected json as a dict or list to transform into entity list")
     entity_list.entities = [transform_json_to_entity(item, entity_list.entity_class) for item in response_list]

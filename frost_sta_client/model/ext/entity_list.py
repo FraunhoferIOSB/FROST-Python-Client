@@ -69,7 +69,7 @@ class EntityList(Generic[T]):
             start_index = len(self.entities)
             self.entities += result_list.entities
             self.set_service(self.service)
-            self.next_link = json_response.get("@iot.nextLink", None)
+            self.next_link = result_list.next_link
             self.iterable_entities = iter(enumerate(self.entities[start_index:], start=start_index))
             idx, next_entity = next(self.iterable_entities, (None, None))
             if next_entity is None:

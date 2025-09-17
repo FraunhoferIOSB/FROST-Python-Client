@@ -159,8 +159,10 @@ class BaseDao:
             frost_sta_client.utils.handle_server_error(e, 'Finding {}'.format(id))
         logging.debug('Received response: {}'.format(response.status_code))
         json_response = response.json()
-        json_response['id'] = json_response['@iot.id']
-        entity = frost_sta_client.utils.transform_json_to_entity(json_response, self.entity_class)
+        normalized = frost_sta_client.utils.normalize_sta_odata_json(json_response)
+        if '@iot.id' in normalized and 'id' not in normalized:
+            normalized['id'] = normalized['@iot.id']
+        entity = frost_sta_client.utils.transform_json_to_entity(normalized, self.entity_class)
         entity.service = self.service
         return entity
 
