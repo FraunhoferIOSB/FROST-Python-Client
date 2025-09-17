@@ -566,8 +566,13 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                 arg_parts.append(f"{snake(p['name'])}: {ann}")
         for np in navs:
             related = _last_segment(np['type'])
-            ann = f"Optional[Union[EntityList[{related}], List[{related}]]]" if np.get("collection", False) else f"Optional[{related}]"
-            arg_parts.append(f"{snake(np['name'])}: {ann} = None")
+            sn = snake(np['name'])
+            nullable_nav = np.get('nullable', True)
+            if np.get("collection", False):
+                ann = f"Optional[Union[EntityList[{related}], List[{related}]]]" if nullable_nav else f"Union[EntityList[{related}], List[{related}]]"
+            else:
+                ann = f"Optional[{related}]" if nullable_nav else f"{related}"
+            arg_parts.append(f"{sn}: {ann} = None")
         arg_parts.append("**kwargs")
         arg_sig = ",\n\t\t\t\t ".join(arg_parts)
 
@@ -579,7 +584,13 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             lines.append(f"        self.{sn} = {sn}")
         for np in navs:
             sn = snake(np['name'])
-            lines.append(f"        self.{sn} = {sn}")
+            if np.get('nullable', True):
+                lines.append(f"        self.{sn} = {sn}")
+            else:
+                lines.append(f"        if {sn} is None:")
+                lines.append(f"            self._{sn} = None")
+                lines.append("        else:")
+                lines.append(f"            self.{sn} = {sn}")
         lines.append("")
 
         # Properties with getters/setters and type checks (skip 'id' which is handled by base Entity)
@@ -792,9 +803,13 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             lines.append("")
             lines.append(f"    @{sn}.setter")
             lines.append(f"    def {sn}(self, value):")
-            lines.append("        if value is None:")
-            lines.append(f"            self._{sn} = None")
-            lines.append("            return")
+            if np.get('nullable', True):
+                lines.append("        if value is None:")
+                lines.append(f"            self._{sn} = None")
+                lines.append("            return")
+            else:
+                lines.append("        if value is None:")
+                lines.append(f"            raise ValueError('{sn} may not be None')")
             if np.get("collection", False):
                 lines.append(f"        if isinstance(value, EntityList):")
                 lines.append(f"            if not all(isinstance(x, {related}) for x in value.entities):")

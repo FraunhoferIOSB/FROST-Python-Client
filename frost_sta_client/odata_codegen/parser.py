@@ -130,7 +130,8 @@ def parse_metadata(xml_text: str) -> Dict[str, Any]:
                 nname = np.attrib.get("Name")
                 ntype = np.attrib.get("Type") or "Edm.EntityType"
                 is_coll, inner = _parse_type(ntype)
-                navs.append({"name": nname, "type": inner, "collection": is_coll})
+                nnull = _is_true(np.attrib.get("Nullable", "true"))
+                navs.append({"name": nname, "type": inner, "collection": is_coll, "nullable": nnull})
             fqn = f"{namespace}.{e_name}"
             model["entity_types"][fqn] = {
                 "name": e_name,
