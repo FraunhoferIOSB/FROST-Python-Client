@@ -973,8 +973,8 @@ def generate_from_url(base_url: str, out_dir: str, module_name: str = "datamodel
     info = find_odata_endpoint(base_url, auth=auth)
     if info is None:
         meta_path_candidates = [
-            os.path.join(os.getcwd(), "metadata.xml"),
-            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "metadata.xml"),
+            os.path.join(os.getcwd(), "frost_sta_client/metadata.xml"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frost_sta_client/metadata.xml"),
         ]
         xml_text = None
         source = None
