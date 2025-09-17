@@ -96,7 +96,7 @@
         <Property Name="resultQuality" Type="de.FROST.ANY" Nullable="true"/>
         <Property Name="validTime" Type="de.FROST.TM_Period" Nullable="true"/>
         <Property Name="parameters" Type="de.FROST.Object" Nullable="true"/>
-        <NavigationProperty Name="Datastream" Type="de.FROST.Datastream" Partner="Observations"/>
+        <NavigationProperty Name="Datastream" Type="de.FROST.Datastream" Nullable="false" Partner="Observations"/>
         <NavigationProperty Name="FeatureOfInterest" Type="de.FROST.FeatureOfInterest" Nullable="true" Partner="Observations"/>
         <NavigationProperty Name="MultiDatastream" Type="de.FROST.MultiDatastream" Nullable="true" Partner="Observations"/>
       </EntityType>
