@@ -558,8 +558,13 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
 
         arg_parts: List[str] = ["self"]
         for p in props:
+            on = p['name']
+            sn = snake(on)
+            # skip 'id' which is handled by base Entity
+            if sn == 'id':
+                continue
             nullable = p.get('nullable', True)
-            ann, _base_check, _is_coll = _to_py_hint(p['name'], p['type'], model, nullable)
+            ann, _base_check, _is_coll = _to_py_hint(on, p['type'], model, nullable)
             if nullable:
                 arg_parts.append(f"{snake(p['name'])}: {ann} = None")
             else:
@@ -581,16 +586,20 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         lines.append("        super().__init__(**kwargs)")
         for p in props:
             sn = snake(p['name'])
+            # skip 'id' which is handled by base Entity
+            if sn == 'id':
+                continue
             lines.append(f"        self.{sn} = {sn}")
         for np in navs:
             sn = snake(np['name'])
             lines.append(f"        self.{sn} = {sn}")
         lines.append("")
 
-        # Properties with getters/setters and type checks (skip 'id' which is handled by base Entity)
+        # Properties with getters/setters and type checks
         for p in props:
             on = p['name']
             sn = snake(on)
+            # skip 'id' which is handled by base Entity
             if sn == 'id':
                 continue
             nullable = p.get('nullable', True)
