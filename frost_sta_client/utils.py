@@ -152,7 +152,6 @@ def transform_json_to_entity_list(json_response, entity_class):
     entity_list.entities = [transform_json_to_entity(item, entity_list.entity_class) for item in response_list]
     return entity_list
 
-
 def check_datetime(value, time_entity):
     try:
         parse_datetime(value)
@@ -160,7 +159,6 @@ def check_datetime(value, time_entity):
         logging.error(f"error during {time_entity} check")
         raise e
     return value
-
 
 def parse_datetime(value) -> str:
     if value is None:
@@ -193,8 +191,6 @@ def parse_datetime(value) -> str:
     else:
         raise ValueError('time entities should consist of one or two datetimes')
 
-
-
 def parse_date(value) -> str:
     """Return ISO-8601 date string from datetime.date or string input.
 
@@ -215,7 +211,6 @@ def parse_date(value) -> str:
         return value.isoformat()
     raise ValueError("date entities should be datetime.date or ISO-8601 date string")
 
-
 def parse_time(value) -> str:
     """Return ISO-8601 time string from datetime.time or string input.
 
@@ -235,7 +230,6 @@ def parse_time(value) -> str:
     if isinstance(value, datetime.time):
         return value.isoformat()
     raise ValueError("time entities should be datetime.time or ISO-8601 time string")
-
 
 def duration_to_isoformat(td: datetime.timedelta) -> str:
     """Convert a timedelta to an ISO-8601 duration string (PnDTnHnMnS)."""
@@ -284,7 +278,6 @@ def duration_to_isoformat(td: datetime.timedelta) -> str:
         return f"{sign}P{''.join(parts)}T{''.join(time_parts)}"
     return f"{sign}P{''.join(parts)}"
 
-
 def parse_duration_to_timedelta(value: str) -> datetime.timedelta:
     """Parse an ISO-8601 duration (PnDTnHnMnS or PnW, optional sign) into a timedelta."""
     if value is None:
@@ -312,7 +305,6 @@ def parse_duration_to_timedelta(value: str) -> datetime.timedelta:
     if sign < 0:
         return -td
     return td
-
 
 def parse_duration(value) -> str:
     """Return ISO-8601 duration string from timedelta or string input.
