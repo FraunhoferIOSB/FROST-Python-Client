@@ -165,12 +165,12 @@
       <TypeDefinition Name="Geometry" UnderlyingType="Edm.Geometry"/>
       <ComplexType Name="Object" OpenType="true"/>
       <ComplexType Name="TM_Object" OpenType="false">
-        <Property Name="start" Type="Edm.DateTimeOffset"/>
+        <Property Name="start" Type="Edm.DateTimeOffset" Nullable="false"/>
         <Property Name="end" Type="Edm.DateTimeOffset" Nullable="true"/>
       </ComplexType>
       <ComplexType Name="TM_Period" OpenType="false">
-        <Property Name="start" Type="Edm.DateTimeOffset"/>
-        <Property Name="end" Type="Edm.DateTimeOffset"/>
+        <Property Name="start" Type="Edm.DateTimeOffset" Nullable="false"/>
+        <Property Name="end" Type="Edm.DateTimeOffset" Nullable="false"/>
       </ComplexType>
       <ComplexType Name="UnitOfMeasurement" OpenType="false">
         <Property Name="name" Type="Edm.String" Nullable="true"/>

@@ -76,10 +76,10 @@ def _is_edm_duration(type_str: str, model: Dict[str, Any]) -> bool:
     return underlying == "Edm.Duration"
 
 
-def _to_py_hint(prop_name: str, type_str: str, model: Dict[str, Any]) -> Tuple[str, str, bool]:
+def _to_py_hint(prop_name: str, type_str: str, model: Dict[str, Any], nullable: bool = True) -> Tuple[str, str, bool]:
     """Return (annotation, base_for_check, is_collection).
 
-    - annotation: string used in function signature, e.g. Optional[str] or Optional[List[int]]
+    - annotation: string used in function signature, e.g. Optional[str] or List[int]
     - base_for_check: runtime isinstance check target (e.g. str, int, ClassName) or 'Any' to skip
     - is_collection: whether the type is a collection
     """
@@ -104,7 +104,8 @@ def _to_py_hint(prop_name: str, type_str: str, model: Dict[str, Any]) -> Tuple[s
         hint_base = "Union[timedelta, str]"
     else:
         hint_base = base_py
-    ann = f"Optional[List[{hint_base}]]" if is_coll else f"Optional[{hint_base}]"
+    inner_ann = f"List[{hint_base}]" if is_coll else f"{hint_base}"
+    ann = f"Optional[{inner_ann}]" if nullable else inner_ann
     return ann, base_py, is_coll
 
 
@@ -118,6 +119,7 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
     - Service propagation to child objects/lists is provided
     - ComplexTypes are type with corresponding Python class in entity properties and type is enforced in setter methods.
       Furthermore, ComplexTypes and collections are correctly (de)serialized in __getstate__/__setstate__.
+      Nullability (Nullable) is respected in annotations, constructor signatures and setter validations.
 
     Returns: absolute path of the generated module file.
     """
@@ -167,8 +169,12 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         # Build typed __init__ signature for complex types (EDM primitives get concrete types)
         arg_parts = []
         for p in props:
-            ann, _base_check, _is_coll = _to_py_hint(p['name'], p['type'], model)
-            arg_parts.append(f"{snake(p['name'])}: {ann} = None")
+            nullable = p.get('nullable', True)
+            ann, _base_check, _is_coll = _to_py_hint(p['name'], p['type'], model, nullable)
+            if nullable:
+                arg_parts.append(f"{snake(p['name'])}: {ann} = None")
+            else:
+                arg_parts.append(f"{snake(p['name'])}: {ann}")
         args = ", ".join(arg_parts)
         lines.append(f"class {c_name}:")
         lines.append(f"    def __init__(self, {args}):" if args else "    def __init__(self):")
@@ -185,7 +191,8 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         for p in props:
             on = p['name']
             sn = snake(on)
-            _ann, base_check, is_coll = _to_py_hint(on, p['type'], model)
+            nullable = p.get('nullable', True)
+            _ann, base_check, is_coll = _to_py_hint(on, p['type'], model, nullable)
             lines.append("    @property")
             lines.append(f"    def {sn}(self):")
             lines.append(f"        return getattr(self, '_{sn}', None)")
@@ -196,8 +203,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             if _is_edm_datetimeoffset(inner_raw, model):
                 if is_coll:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if not isinstance(value, list):")
                     lines.append(f"            raise ValueError('{sn} should be a list of datetime or ISO-8601 string')")
                     lines.append(f"        tmp_{sn} = []")
@@ -214,8 +224,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"        self._{sn} = tmp_{sn}")
                 else:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if isinstance(value, datetime):")
                     lines.append(f"            self._{sn} = value")
                     lines.append(f"        elif isinstance(value, str):")
@@ -228,8 +241,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             elif _is_edm_date(inner_raw, model):
                 if is_coll:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if not isinstance(value, list):")
                     lines.append(f"            raise ValueError('{sn} should be a list of date or ISO-8601 date string (YYYY-MM-DD)')")
                     lines.append(f"        tmp_{sn} = []")
@@ -246,8 +262,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"        self._{sn} = tmp_{sn}")
                 else:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if isinstance(value, date):")
                     lines.append(f"            self._{sn} = value")
                     lines.append(f"        elif isinstance(value, str):")
@@ -260,8 +279,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             elif _is_edm_time(inner_raw, model):
                 if is_coll:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if not isinstance(value, list):")
                     lines.append(f"            raise ValueError('{sn} should be a list of time or ISO-8601 time string')")
                     lines.append(f"        tmp_{sn} = []")
@@ -278,8 +300,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"        self._{sn} = tmp_{sn}")
                 else:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if isinstance(value, time):")
                     lines.append(f"            self._{sn} = value")
                     lines.append(f"        elif isinstance(value, str):")
@@ -292,8 +317,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             elif _is_edm_duration(inner_raw, model):
                 if is_coll:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if not isinstance(value, list):")
                     lines.append(f"            raise ValueError('{sn} should be a list of timedelta or ISO-8601 duration string')")
                     lines.append(f"        tmp_{sn} = []")
@@ -310,8 +338,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"        self._{sn} = tmp_{sn}")
                 else:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if isinstance(value, timedelta):")
                     lines.append(f"            self._{sn} = value")
                     lines.append(f"        elif isinstance(value, str):")
@@ -323,15 +354,34 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"            raise ValueError('{sn} should be of type timedelta or ISO-8601 duration string!')")
             elif base_check != "Any":
                 if is_coll:
-                    lines.append(f"        if value is not None and (not isinstance(value, list) or not all(isinstance(x, {base_check}) for x in value)):")
-                    lines.append(f"            raise ValueError('{sn} should be a list of {base_check}')")
+                    if nullable:
+                        lines.append(f"        if value is not None and (not isinstance(value, list) or not all(isinstance(x, {base_check}) for x in value)):")
+                        lines.append(f"            raise ValueError('{sn} should be a list of {base_check}')")
+                        lines.append(f"        self._{sn} = value")
+                    else:
+                        lines.append(f"        if value is None:")
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
+                        lines.append(f"        if not isinstance(value, list) or not all(isinstance(x, {base_check}) for x in value):")
+                        lines.append(f"            raise ValueError('{sn} should be a list of {base_check}')")
+                        lines.append(f"        self._{sn} = value")
+                else:
+                    if nullable:
+                        lines.append(f"        if value is not None and not isinstance(value, {base_check}):")
+                        lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
+                        lines.append(f"        self._{sn} = value")
+                    else:
+                        lines.append(f"        if value is None:")
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
+                        lines.append(f"        if not isinstance(value, {base_check}):")
+                        lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
+                        lines.append(f"        self._{sn} = value")
+            else:
+                if nullable:
                     lines.append(f"        self._{sn} = value")
                 else:
-                    lines.append(f"        if value is not None and not isinstance(value, {base_check}):")
-                    lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
+                    lines.append(f"        if value is None:")
+                    lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        self._{sn} = value")
-            else:
-                lines.append(f"        self._{sn} = value")
             lines.append("")
 
         lines.append("    def __getstate__(self):")
@@ -508,8 +558,12 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
 
         arg_parts: List[str] = ["self"]
         for p in props:
-            ann, _base_check, _is_coll = _to_py_hint(p['name'], p['type'], model)
-            arg_parts.append(f"{snake(p['name'])}: {ann} = None")
+            nullable = p.get('nullable', True)
+            ann, _base_check, _is_coll = _to_py_hint(p['name'], p['type'], model, nullable)
+            if nullable:
+                arg_parts.append(f"{snake(p['name'])}: {ann} = None")
+            else:
+                arg_parts.append(f"{snake(p['name'])}: {ann}")
         for np in navs:
             related = _last_segment(np['type'])
             ann = f"Optional[Union[EntityList[{related}], List[{related}]]]" if np.get("collection", False) else f"Optional[{related}]"
@@ -534,7 +588,8 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             sn = snake(on)
             if sn == 'id':
                 continue
-            _ann, base_check, is_coll = _to_py_hint(on, p['type'], model)
+            nullable = p.get('nullable', True)
+            _ann, base_check, is_coll = _to_py_hint(on, p['type'], model, nullable)
             lines.append("    @property")
             lines.append(f"    def {sn}(self):")
             lines.append(f"        return getattr(self, '_{sn}', None)")
@@ -545,8 +600,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             if _is_edm_datetimeoffset(inner_raw, model):
                 if is_coll:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if not isinstance(value, list):")
                     lines.append(f"            raise ValueError('{sn} should be a list of datetime or ISO-8601 string')")
                     lines.append(f"        tmp_{sn} = []")
@@ -563,8 +621,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"        self._{sn} = tmp_{sn}")
                 else:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if isinstance(value, datetime):")
                     lines.append(f"            self._{sn} = value")
                     lines.append(f"        elif isinstance(value, str):")
@@ -577,8 +638,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             elif _is_edm_date(inner_raw, model):
                 if is_coll:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if not isinstance(value, list):")
                     lines.append(f"            raise ValueError('{sn} should be a list of date or ISO-8601 date string (YYYY-MM-DD)')")
                     lines.append(f"        tmp_{sn} = []")
@@ -595,8 +659,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"        self._{sn} = tmp_{sn}")
                 else:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if isinstance(value, date):")
                     lines.append(f"            self._{sn} = value")
                     lines.append(f"        elif isinstance(value, str):")
@@ -609,8 +676,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             elif _is_edm_time(inner_raw, model):
                 if is_coll:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if not isinstance(value, list):")
                     lines.append(f"            raise ValueError('{sn} should be a list of time or ISO-8601 time string')")
                     lines.append(f"        tmp_{sn} = []")
@@ -627,8 +697,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"        self._{sn} = tmp_{sn}")
                 else:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if isinstance(value, time):")
                     lines.append(f"            self._{sn} = value")
                     lines.append(f"        elif isinstance(value, str):")
@@ -641,8 +714,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             elif _is_edm_duration(inner_raw, model):
                 if is_coll:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if not isinstance(value, list):")
                     lines.append(f"            raise ValueError('{sn} should be a list of timedelta or ISO-8601 duration string')")
                     lines.append(f"        tmp_{sn} = []")
@@ -659,8 +735,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"        self._{sn} = tmp_{sn}")
                 else:
                     lines.append(f"        if value is None:")
-                    lines.append(f"            self._{sn} = None")
-                    lines.append(f"            return")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        if isinstance(value, timedelta):")
                     lines.append(f"            self._{sn} = value")
                     lines.append(f"        elif isinstance(value, str):")
@@ -672,15 +751,34 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"            raise ValueError('{sn} should be of type timedelta or ISO-8601 duration string!')")
             elif base_check != "Any":
                 if is_coll:
-                    lines.append(f"        if value is not None and (not isinstance(value, list) or not all(isinstance(x, {base_check}) for x in value)):")
-                    lines.append(f"            raise ValueError('{sn} should be a list of {base_check}')")
+                    if nullable:
+                        lines.append(f"        if value is not None and (not isinstance(value, list) or not all(isinstance(x, {base_check}) for x in value)):")
+                        lines.append(f"            raise ValueError('{sn} should be a list of {base_check}')")
+                        lines.append(f"        self._{sn} = value")
+                    else:
+                        lines.append(f"        if value is None:")
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
+                        lines.append(f"        if not isinstance(value, list) or not all(isinstance(x, {base_check}) for x in value):")
+                        lines.append(f"            raise ValueError('{sn} should be a list of {base_check}')")
+                        lines.append(f"        self._{sn} = value")
+                else:
+                    if nullable:
+                        lines.append(f"        if value is not None and not isinstance(value, {base_check}):")
+                        lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
+                        lines.append(f"        self._{sn} = value")
+                    else:
+                        lines.append(f"        if value is None:")
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
+                        lines.append(f"        if not isinstance(value, {base_check}):")
+                        lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
+                        lines.append(f"        self._{sn} = value")
+            else:
+                if nullable:
                     lines.append(f"        self._{sn} = value")
                 else:
-                    lines.append(f"        if value is not None and not isinstance(value, {base_check}):")
-                    lines.append(f"            raise ValueError('{sn} should be of type {base_check}!')")
+                    lines.append(f"        if value is None:")
+                    lines.append(f"            raise ValueError('{sn} may not be None')")
                     lines.append(f"        self._{sn} = value")
-            else:
-                lines.append(f"        self._{sn} = value")
             lines.append("")
 
         # Navigation properties with getters/setters and type checks
