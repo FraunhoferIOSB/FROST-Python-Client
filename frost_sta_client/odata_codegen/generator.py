@@ -584,13 +584,7 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             lines.append(f"        self.{sn} = {sn}")
         for np in navs:
             sn = snake(np['name'])
-            if np.get('nullable', True):
-                lines.append(f"        self.{sn} = {sn}")
-            else:
-                lines.append(f"        if {sn} is None:")
-                lines.append(f"            self._{sn} = None")
-                lines.append("        else:")
-                lines.append(f"            self.{sn} = {sn}")
+            lines.append(f"        self.{sn} = {sn}")
         lines.append("")
 
         # Properties with getters/setters and type checks (skip 'id' which is handled by base Entity)
