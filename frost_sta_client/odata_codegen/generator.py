@@ -998,6 +998,9 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         for p in props:
             on = p['name']
             sn = snake(on)
+            # skip 'id' which is handled by base Entity
+            if sn == 'id':
+                continue
             is_coll, inner = _split_collection(p['type'])
             if _is_real_complex(inner, model):
                 lines.append(f"        if self.{sn} is not None:")
