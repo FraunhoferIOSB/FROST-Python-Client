@@ -25,10 +25,23 @@ _EDM_TO_PY: Dict[str, str] = {
     "Edm.Binary": "bytes",
     "Edm.Stream": "bytes",
     "Edm.Untyped": "Any",
-    "Edm.Geometry": "Any",
-    "Edm.Geography": "Any",
-    "Edm.GeographyPoint": "Any",
-    "Edm.GeometryPoint": "Any",
+    # Geospatial
+    "Edm.Geometry": "dict",
+    "Edm.Geography": "dict",
+    "Edm.GeographyPoint": "dict",
+    "Edm.GeometryPoint": "dict",
+    "Edm.GeographyLineString": "dict",
+    "Edm.GeometryLineString": "dict",
+    "Edm.GeographyPolygon": "dict",
+    "Edm.GeometryPolygon": "dict",
+    "Edm.GeographyMultiPoint": "dict",
+    "Edm.GeometryMultiPoint": "dict",
+    "Edm.GeographyMultiLineString": "dict",
+    "Edm.GeometryMultiLineString": "dict",
+    "Edm.GeographyMultiPolygon": "dict",
+    "Edm.GeometryMultiPolygon": "dict",
+    "Edm.GeographyCollection": "dict",
+    "Edm.GeometryCollection": "dict",
 }
 
 
@@ -75,6 +88,32 @@ def _is_edm_duration(type_str: str, model: Dict[str, Any]) -> bool:
     underlying = _resolve_underlying(inner, model)
     return underlying == "Edm.Duration"
 
+def _is_edm_geospatial(type_str: str, model: Dict[str, Any]) -> bool:
+    is_coll, inner = _split_collection(type_str)
+    underlying = _resolve_underlying(inner, model)
+    if underlying in ("Edm.Geometry", "Edm.Geography"):
+        return True
+    return underlying.startswith("Edm.Geometry") or underlying.startswith("Edm.Geography")
+
+def _geo_expected_kind(underlying: str) -> str | None:
+    mapping = {
+        "Edm.GeometryPoint": "Point",
+        "Edm.GeographyPoint": "Point",
+        "Edm.GeometryLineString": "LineString",
+        "Edm.GeographyLineString": "LineString",
+        "Edm.GeometryPolygon": "Polygon",
+        "Edm.GeographyPolygon": "Polygon",
+        "Edm.GeometryMultiPoint": "MultiPoint",
+        "Edm.GeographyMultiPoint": "MultiPoint",
+        "Edm.GeometryMultiLineString": "MultiLineString",
+        "Edm.GeographyMultiLineString": "MultiLineString",
+        "Edm.GeometryMultiPolygon": "MultiPolygon",
+        "Edm.GeographyMultiPolygon": "MultiPolygon",
+        "Edm.GeometryCollection": "GeometryCollection",
+        "Edm.GeographyCollection": "GeometryCollection",
+    }
+    return mapping.get(underlying)
+
 
 def _to_py_hint(prop_name: str, type_str: str, model: Dict[str, Any], nullable: bool = True) -> Tuple[str, str, bool]:
     """Return (annotation, base_for_check, is_collection).
@@ -102,6 +141,9 @@ def _to_py_hint(prop_name: str, type_str: str, model: Dict[str, Any], nullable: 
         hint_base = "Union[time, str]"
     elif underlying == "Edm.Duration":
         hint_base = "Union[timedelta, str]"
+    elif underlying.startswith("Edm.Geometry") or underlying.startswith("Edm.Geography"):
+        # Accept dict (GeoJSON-like) or JSON string; canonical storage is dict
+        hint_base = "Union[dict, str]"
     else:
         hint_base = base_py
     inner_ann = f"List[{hint_base}]" if is_coll else f"{hint_base}"
@@ -352,6 +394,37 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"                raise ValueError('{sn} should be an ISO-8601 duration string or timedelta')")
                     lines.append(f"        else:")
                     lines.append(f"            raise ValueError('{sn} should be of type timedelta or ISO-8601 duration string!')")
+            elif _is_edm_geospatial(inner_raw, model):
+                expected = _geo_expected_kind(_resolve_underlying(inner_raw, model))
+                if is_coll:
+                    lines.append(f"        if value is None:")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
+                    lines.append(f"        if not isinstance(value, list):")
+                    lines.append(f"            raise ValueError('{sn} should be a list of GeoJSON geometry dicts or JSON strings')")
+                    lines.append(f"        tmp_{sn} = []")
+                    lines.append(f"        for _x in value:")
+                    if_expected = " , expected_kind='" + expected + "'" if expected else ""
+                    lines.append(f"            try:")
+                    lines.append(f"                tmp_{sn}.append(utils.parse_geometry(_x{if_expected}))")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('{sn} contains an invalid geometry')")
+                    lines.append(f"        self._{sn} = tmp_{sn}")
+                else:
+                    lines.append(f"        if value is None:")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
+                    if_expected = " , expected_kind='" + expected + "'" if expected else ""
+                    lines.append(f"        try:")
+                    lines.append(f"            self._{sn} = utils.parse_geometry(value{if_expected})")
+                    lines.append(f"        except ValueError:")
+                    lines.append(f"            raise ValueError('{sn} should be a valid GeoJSON geometry')")
             elif base_check != "Any":
                 if is_coll:
                     if nullable:
@@ -414,6 +487,12 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"            d['{on}'] = [utils.parse_duration(x) for x in self.{sn}]")
                 else:
                     lines.append(f"            d['{on}'] = utils.parse_duration(self.{sn})")
+            elif _is_edm_geospatial(inner, model):
+                lines.append(f"        if self.{sn} is not None:")
+                if is_coll:
+                    lines.append(f"            d['{on}'] = [utils.geometry_to_json(x) for x in self.{sn}]")
+                else:
+                    lines.append(f"            d['{on}'] = utils.geometry_to_json(self.{sn})")
             else:
                 lines.append(f"        if self.{sn} is not None:")
                 lines.append(f"            d['{on}'] = self.{sn}")
@@ -534,6 +613,30 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"                self.{sn} = utils.parse_duration_to_timedelta(_tmp)")
                     lines.append(f"            except ValueError:")
                     lines.append(f"                raise ValueError('invalid ISO-8601 duration string for {sn}')")
+                    lines.append(f"        else:")
+                    lines.append(f"            self.{sn} = _tmp")
+            elif _is_edm_geospatial(inner, model):
+                expected = _geo_expected_kind(_resolve_underlying(inner, model))
+                if is_coll:
+                    lines.append(f"        if state.get('{on}', None) is not None and isinstance(state['{on}'], list):")
+                    lines.append(f"            tmp_{sn} = []")
+                    lines.append(f"            for _v in state['{on}']:")
+                    if_expected = " , expected_kind='" + expected + "'" if expected else ""
+                    lines.append(f"                try:")
+                    lines.append(f"                    tmp_{sn}.append(utils.parse_geometry(_v{if_expected}))")
+                    lines.append(f"                except ValueError:")
+                    lines.append(f"                    raise ValueError('invalid geometry for {sn}')")
+                    lines.append(f"            self.{sn} = tmp_{sn}")
+                    lines.append(f"        else:")
+                    lines.append(f"            self.{sn} = state.get('{on}', None)")
+                else:
+                    lines.append(f"        _tmp = state.get('{on}', None)")
+                    lines.append(f"        if _tmp is not None:")
+                    if_expected = " , expected_kind='" + expected + "'" if expected else ""
+                    lines.append(f"            try:")
+                    lines.append(f"                self.{sn} = utils.parse_geometry(_tmp{if_expected})")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('invalid geometry for {sn}')")
                     lines.append(f"        else:")
                     lines.append(f"            self.{sn} = _tmp")
             else:
@@ -763,6 +866,37 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"                raise ValueError('{sn} should be an ISO-8601 duration string or timedelta')")
                     lines.append(f"        else:")
                     lines.append(f"            raise ValueError('{sn} should be of type timedelta or ISO-8601 duration string!')")
+            elif _is_edm_geospatial(inner_raw, model):
+                expected = _geo_expected_kind(_resolve_underlying(inner_raw, model))
+                if is_coll:
+                    lines.append(f"        if value is None:")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
+                    lines.append(f"        if not isinstance(value, list):")
+                    lines.append(f"            raise ValueError('{sn} should be a list of GeoJSON geometry dicts or JSON strings')")
+                    lines.append(f"        tmp_{sn} = []")
+                    lines.append(f"        for _x in value:")
+                    if_expected = " , expected_kind='" + expected + "'" if expected else ""
+                    lines.append(f"            try:")
+                    lines.append(f"                tmp_{sn}.append(utils.parse_geometry(_x{if_expected}))")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('{sn} contains an invalid geometry')")
+                    lines.append(f"        self._{sn} = tmp_{sn}")
+                else:
+                    lines.append(f"        if value is None:")
+                    if nullable:
+                        lines.append(f"            self._{sn} = None")
+                        lines.append(f"            return")
+                    else:
+                        lines.append(f"            raise ValueError('{sn} may not be None')")
+                    if_expected = " , expected_kind='" + expected + "'" if expected else ""
+                    lines.append(f"        try:")
+                    lines.append(f"            self._{sn} = utils.parse_geometry(value{if_expected})")
+                    lines.append(f"        except ValueError:")
+                    lines.append(f"            raise ValueError('{sn} should be a valid GeoJSON geometry')")
             elif base_check != "Any":
                 if is_coll:
                     if nullable:
@@ -892,6 +1026,12 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"            data['{on}'] = [utils.parse_duration(x) for x in self.{sn}]")
                 else:
                     lines.append(f"            data['{on}'] = utils.parse_duration(self.{sn})")
+            elif _is_edm_geospatial(inner, model):
+                lines.append(f"        if self.{sn} is not None:")
+                if is_coll:
+                    lines.append(f"            data['{on}'] = [utils.geometry_to_json(x) for x in self.{sn}]")
+                else:
+                    lines.append(f"            data['{on}'] = utils.geometry_to_json(self.{sn})")
             else:
                 lines.append(f"        if self.{sn} is not None:")
                 lines.append(f"            data['{on}'] = self.{sn}")
@@ -1038,6 +1178,28 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                     lines.append(f"                self.{sn} = utils.parse_duration_to_timedelta(_tmp)")
                     lines.append(f"            except ValueError:")
                     lines.append(f"                raise ValueError('invalid ISO-8601 duration string for {sn}')")
+                    lines.append(f"        else:")
+                    lines.append(f"            self.{sn} = _tmp")
+            elif _is_edm_geospatial(inner, model):
+                expected = _geo_expected_kind(_resolve_underlying(inner, model))
+                if is_coll:
+                    lines.append(f"        if state.get('{on}', None) is not None and isinstance(state['{on}'], list):")
+                    lines.append(f"            tmp_{sn} = []")
+                    lines.append(f"            for _v in state['{on}']:")
+                    if_expected = " , expected_kind='" + expected + "'" if expected else ""
+                    lines.append(f"                try:")
+                    lines.append(f"                    tmp_{sn}.append(utils.parse_geometry(_v{if_expected}))")
+                    lines.append(f"                except ValueError:")
+                    lines.append(f"                    raise ValueError('invalid geometry for {sn}')")
+                    lines.append(f"            self.{sn} = tmp_{sn}")
+                else:
+                    lines.append(f"        _tmp = state.get('{on}', None)")
+                    lines.append(f"        if _tmp is not None:")
+                    if_expected = " , expected_kind='" + expected + "'" if expected else ""
+                    lines.append(f"            try:")
+                    lines.append(f"                self.{sn} = utils.parse_geometry(_tmp{if_expected})")
+                    lines.append(f"            except ValueError:")
+                    lines.append(f"                raise ValueError('invalid geometry for {sn}')")
                     lines.append(f"        else:")
                     lines.append(f"            self.{sn} = _tmp")
             else:

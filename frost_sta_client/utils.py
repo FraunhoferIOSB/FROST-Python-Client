@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 import jsonpickle
 import datetime
 from dateutil.parser import isoparse
@@ -322,6 +323,113 @@ def parse_duration(value) -> str:
         td = parse_duration_to_timedelta(value)
         return duration_to_isoformat(td)
     raise ValueError("duration entities should be timedelta or ISO-8601 duration string")
+
+def parse_geometry(value: Any, expected_kind: str = None) -> Dict[str, Any]:
+    """Parse a GeoJSON-like geometry into a canonical dict.
+
+    Accepted inputs:
+    - dict with 'type' and 'coordinates' (or 'geometries' for GeometryCollection)
+    - JSON string of such a dict
+    - Any object exposing __geo_interface__
+
+    expected_kind (optional): enforce a specific geometry type, e.g. 'Point',
+    'LineString', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon',
+    'GeometryCollection'.
+    """
+    if value is None:
+        return None
+
+    def _normalize_dict(d: Dict[str, Any]) -> Dict[str, Any]:
+        gtype = d.get('type')
+        if not gtype:
+            raise ValueError("geometry dict must contain 'type'")
+        if gtype == 'GeometryCollection':
+            if not isinstance(d.get('geometries'), list):
+                raise ValueError("GeometryCollection must contain a 'geometries' list")
+        else:
+            if 'coordinates' not in d:
+                raise ValueError("geometry dict must contain 'coordinates'")
+        if expected_kind and gtype != expected_kind:
+            raise ValueError(f"expected geometry of type {expected_kind} but got {gtype}")
+        return d
+
+    # dict input
+    if isinstance(value, dict):
+        return _normalize_dict(value)
+
+    # JSON string input
+    if isinstance(value, str):
+        s = value.strip()
+        try:
+            obj = json.loads(s)
+        except Exception:
+            try:
+                obj = jsonpickle.decode(s)
+            except Exception:
+                raise ValueError("If the geometry is provided as string, it should be a JSON object")
+        if not isinstance(obj, dict):
+            raise ValueError("If the geometry is provided as string, it should decode to a JSON object")
+        return _normalize_dict(obj)
+
+    # __geo_interface__ support (e.g., shapely, geojson objects)
+    try:
+        gi = getattr(value, "__geo_interface__", None)
+    except Exception:
+        gi = None
+    if isinstance(gi, dict):
+        return _normalize_dict(gi)
+
+    # Best effort for geojson objects with attributes
+    try:
+        gtype = getattr(value, "type", None)
+        coords = getattr(value, "coordinates", None)
+        if gtype and (coords is not None or gtype == "GeometryCollection"):
+            if gtype == "GeometryCollection":
+                geoms = getattr(value, "geometries", None)
+                if not isinstance(geoms, list):
+                    raise ValueError("GeometryCollection must have 'geometries' list")
+                d = {"type": "GeometryCollection", "geometries": [parse_geometry(g) for g in geoms]}
+            else:
+                d = {"type": gtype, "coordinates": coords}
+            return _normalize_dict(d)
+    except Exception:
+        pass
+
+    raise ValueError("geometry entities should be provided as GeoJSON-like dict or JSON string")
+
+def geometry_to_json(value: Any) -> Dict[str, Any]:
+    """Convert a geometry representation to a plain GeoJSON-like dict."""
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        return value
+    # __geo_interface__ (preferred)
+    try:
+        gi = getattr(value, "__geo_interface__", None)
+    except Exception:
+        gi = None
+    if isinstance(gi, dict):
+        return gi
+    # JSON string
+    if isinstance(value, str):
+        try:
+            obj = json.loads(value)
+            if isinstance(obj, dict):
+                return obj
+        except Exception:
+            pass
+    # geojson object with attributes
+    try:
+        gtype = getattr(value, "type", None)
+        coords = getattr(value, "coordinates", None)
+        if gtype and (coords is not None or gtype == "GeometryCollection"):
+            if gtype == "GeometryCollection":
+                geoms = getattr(value, "geometries", None) or []
+                return {"type": "GeometryCollection", "geometries": [geometry_to_json(g) for g in geoms]}
+            return {"type": gtype, "coordinates": coords}
+    except Exception:
+        pass
+    raise ValueError("Unsupported geometry representation")
 
 def process_area(value):
     if not isinstance(value, dict):
