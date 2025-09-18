@@ -1,7 +1,7 @@
 import pytest
 import frost_sta_client.model.ext.entity_list
 from frost_sta_client.service.sensorthingsservice import SensorThingsService
-from frost_sta_client.model import thing, location, sensor, observedproperty, datastream, observation, feature_of_interest, multi_datastream, task, tasking_capability
+from frost_sta_client.model import thing, location, sensor, observedproperty, datastream, observation, feature_of_interest, multi_datastream, task, tasking_capability, historical_location
 
 class MockResponse:
     def __init__(self, status_code=200, json_data=None):
@@ -23,7 +23,7 @@ class DummyService(SensorThingsService):
 SCENARIOS = [
     (thing.Thing, 'get_datastreams', datastream.Datastream, 'Things(1)/Datastreams'),
     (thing.Thing, 'get_locations', location.Location, 'Things(1)/Locations'),
-    (thing.Thing, 'get_historical_locations', location.HistoricalLocation, 'Things(1)/HistoricalLocations'),
+    (thing.Thing, 'get_historical_locations', historical_location.HistoricalLocation, 'Things(1)/HistoricalLocations'),
     (thing.Thing, 'get_tasking_capabilities', tasking_capability.TaskingCapability, 'Things(1)/TaskingCapabilities'),
     (thing.Thing, 'get_multi_datastreams', multi_datastream.MultiDatastream, 'Things(1)/MultiDatastreams'),
     (datastream.Datastream, 'get_observations', observation.Observation, 'Datastreams(1)/Observations'),
@@ -31,7 +31,7 @@ SCENARIOS = [
     (sensor.Sensor, 'get_datastreams', datastream.Datastream, 'Sensors(1)/Datastreams'),
     (sensor.Sensor, 'get_multi_datastreams', multi_datastream.MultiDatastream, 'Sensors(1)/MultiDatastreams'),
     (location.Location, 'get_things', thing.Thing, 'Locations(1)/Things'),
-    (location.Location, 'get_historical_locations', location.HistoricalLocation, 'Locations(1)/HistoricalLocations'),
+    (location.Location, 'get_historical_locations', historical_location.HistoricalLocation, 'Locations(1)/HistoricalLocations'),
     (observedproperty.ObservedProperty, 'get_datastreams', datastream.Datastream, 'ObservedProperties(1)/Datastreams'),
     (observedproperty.ObservedProperty, 'get_multi_datastreams', multi_datastream.MultiDatastream, 'ObservedProperties(1)/MultiDatastreams'),
     (multi_datastream.MultiDatastream, 'get_observations', observation.Observation, 'MultiDatastreams(1)/Observations'),
