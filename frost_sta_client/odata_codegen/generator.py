@@ -982,6 +982,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         if props:
             for p in props:
                 sn = snake(p['name'])
+
+                # skip 'id' which is handled by base Entity
+                if sn == 'id':
+                    continue
+
                 lines.append(f"        if self.{sn} != other.{sn}:")
                 lines.append("            return False")
             lines.append("        return True")
