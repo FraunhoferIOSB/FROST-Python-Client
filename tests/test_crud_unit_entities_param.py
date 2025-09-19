@@ -1,5 +1,6 @@
 import pytest
 from frost_sta_client.service.sensorthingsservice import SensorThingsService
+from frost_sta_client.model.ext.entity_type import get_list_for_class
 from frost_sta_client.model import thing, location, sensor, observedproperty, datastream, observation, feature_of_interest, multi_datastream, actuator, task, tasking_capability, historical_location
 
 class MockResponse:
@@ -19,10 +20,21 @@ class DummyService(SensorThingsService):
         self.calls = []
     def execute(self, method, url, **kwargs):
         self.calls.append((method, str(url)))
+        loc = f'{url}(100)'
         if method == 'post':
-            return MockResponse(201, {}, headers={'location': 'Entity(100)'})
+            return MockResponse(201, {}, headers={'location': loc})
         if method == 'get':
-            return MockResponse(200, {'@iot.id': 5})
+            url_str = str(url)
+            # Extract entity id from URL, supports numeric and quoted string IDs
+            if '(' in url_str and ')' in url_str:
+                raw = url_str.rsplit('(', 1)[-1].split(')', 1)[0]
+                try:
+                    entity_id = int(raw)
+                except ValueError:
+                    entity_id = raw.strip("'\"")
+            else:
+                entity_id = None
+            return MockResponse(200, {'@iot.id': entity_id, '@iot.selfLink': url_str})
         return MockResponse(200, {})
 
 ENTITIES = [
@@ -42,18 +54,27 @@ ENTITIES = [
 
 @pytest.mark.parametrize('dao_method, entity_cls', ENTITIES)
 def test_crud_create_find_update_delete_unit(dao_method, entity_cls):
-    svc = DummyService('http://example.org/FROST-Server/v1.1')
+    url = 'http://example.org/FROST-Server/v1.1'
+    svc = DummyService(url)
     e = entity_cls()
     # Create
     svc.create(e)
     assert e.id == 100
     assert e.service is svc
     # Read
-    found = getattr(svc, dao_method)().find(5)
-    assert found.id == 5
-    assert found.service is svc
+    ecn = get_list_for_class(entity_cls)
+    # int
+    found_int = getattr(svc, dao_method)().find(5)
+    assert found_int.id == 5
+    assert found_int.self_link == f"{url}/{ecn}(5)"
+    assert found_int.service is svc
+    # str
+    found_str = getattr(svc, dao_method)().find("some_id")
+    assert found_str.id == "some_id"
+    assert found_str.self_link == f"{url}/{ecn}('some_id')"
+    assert found_str.service is svc
     # Update
-    e.id = 5
+    e.id = 7
     svc.update(e)
     assert svc.calls[-1][0] == 'put'
     # Delete
