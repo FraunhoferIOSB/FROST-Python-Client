@@ -42,7 +42,7 @@ class ObservationDao(base.BaseDao):
             url = self.service.url.copy()
             url.path.add(self.CREATE_OBSERVATIONS)
             logging.debug('Posting to ' + str(url.url))
-            json_dict = transform_entity_to_json_dict(entity.value)
+            json_dict = [transform_entity_to_json_dict(dav) for dav in entity.value]
             try:
                 response = self.service.execute('post', url, json=json_dict)
             except requests.exceptions.HTTPError as e:
