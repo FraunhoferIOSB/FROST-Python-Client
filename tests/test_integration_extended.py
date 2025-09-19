@@ -25,7 +25,6 @@ def test_crud_feature_of_interest(sensorthings_service):
 
 def test_crud_location(sensorthings_service):
     p = Point((7.1, 50.2))
-    loc = feature_of_interest.Location if False else None  # placeholder to avoid unused import warning
     from frost_sta_client.model.location import Location
     l = Location(name='Loc IT', description='d', encoding_type='application/geo+json', location=p, properties={'x': True})
     sensorthings_service.create(l)
