@@ -20,7 +20,8 @@ import frost_sta_client as fsc
 
 url = "exampleserver.com/FROST-Server/v1.1"
 auth_handler = fsc.AuthHandler(username="admin", password="admin") # if server is configured for basic auth, else None
-service = fsc.SensorThingsService(url, auth_handler=auth_handler)
+session_handler = fsc.SessionHandler()  #if continuous requests from requests.Sessions should be used
+service = fsc.SensorThingsService(url, auth_handler=auth_handler, session_handler=session_handler)
 ```
 #### Creating Entities
 ```python

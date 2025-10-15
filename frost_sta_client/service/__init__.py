@@ -1,2 +1,3 @@
 from frost_sta_client.service import sensorthingsservice
 from frost_sta_client.service import auth_handler
+from frost_sta_client.service import session_handler

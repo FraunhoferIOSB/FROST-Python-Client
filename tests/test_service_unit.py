@@ -3,6 +3,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 from frost_sta_client.service.sensorthingsservice import SensorThingsService
 from frost_sta_client.service.auth_handler import AuthHandler
+from frost_sta_client.service.session_handler import SessionHandler
 from frost_sta_client.model.thing import Thing
 
 
@@ -43,6 +44,7 @@ def test_execute_uses_auth(monkeypatch):
     svc.auth_handler = AuthHandler('user', 'pass')
     captured = {}
 
+
     def fake_request(method, url, proxies=None, auth=None, **kwargs):
         captured['auth'] = auth
         class R:
@@ -56,3 +58,50 @@ def test_execute_uses_auth(monkeypatch):
     monkeypatch.setattr(requests, 'request', fake_request)
     svc.execute('get', 'http://example.org')
     assert isinstance(captured['auth'], HTTPBasicAuth)
+
+def test_execute_uses_session(monkeypatch):
+    svc = SensorThingsService('http://example.org/FROST-Server/v1.1')
+    svc.session_handler = SessionHandler()
+    captured = {}
+
+
+    def fake_request_session(self,method, url, proxies=None, auth=None, **kwargs):
+        captured['session'] = self
+        class R:
+            status_code = 200
+            def raise_for_status(self):
+                pass
+            def json(self):
+                return {}
+        return R()
+
+    monkeypatch.setattr(requests.Session, 'request', fake_request_session)
+    svc.execute('get', 'http://example.org')
+    assert isinstance(captured['session'], requests.Session)
+
+
+
+def test_execute_uses_auth_and_session(monkeypatch):
+    svc = SensorThingsService('http://example.org/FROST-Server/v1.1')
+    svc.auth_handler = AuthHandler('user', 'pass')
+    svc.session_handler = SessionHandler()
+    captured = {}
+
+
+    def fake_request_session(self,method, url, proxies=None, auth=None, **kwargs):
+        captured['auth'] = self.auth
+        captured['session'] = self
+
+        class R:
+            status_code = 200
+            def raise_for_status(self):
+                pass
+            def json(self):
+                return {}
+        return R()
+
+    monkeypatch.setattr(requests.Session, 'request', fake_request_session)
+    svc.execute('get', 'http://example.org')
+    assert isinstance(captured['auth'], HTTPBasicAuth)
+    assert isinstance(captured['session'], requests.Session)
+

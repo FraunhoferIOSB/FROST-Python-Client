@@ -15,18 +15,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import requests
+
 from furl import furl
 import logging
 
 from frost_sta_client.dao import *
 from frost_sta_client.service import auth_handler
+from frost_sta_client.service import session_handler
 from frost_sta_client.model.ext import entity_type
 
 
 class SensorThingsService:
-
-    def __init__(self, url, auth_handler=None, proxies=None):
+    def __init__(self, url, auth_handler=None, session_handler=None, proxies=None):
         self.url = url
+        self.session_handler = session_handler
         self.auth_handler = auth_handler
         self.proxies = proxies
 
@@ -45,7 +47,6 @@ class SensorThingsService:
             logging.error("received invalid url")
             raise e
 
-
     @property
     def auth_handler(self):
         return self._auth_handler
@@ -56,10 +57,28 @@ class SensorThingsService:
             self._auth_handler = None
             return
         if not isinstance(value, auth_handler.AuthHandler):
-            raise ValueError('auth should be of type AuthHandler!')
-        self._auth_handler = value
+            raise ValueError("auth should be of type AuthHandler!")
 
-    
+        self._auth_handler = value
+        if self.session_handler is not None:
+            self.session_handler.set_auth(value.add_auth_header())
+
+    @property
+    def session_handler(self):
+        return self._session_handler
+
+    @session_handler.setter
+    def session_handler(self, value):
+        if value is None:
+            self._session_handler = None
+            return
+        if not isinstance(value, session_handler.SessionHandler):
+            raise ValueError("session should be of type SessionHandler!")
+        self._session_handler = value
+
+        if self.auth_handler is not None:
+            self.session_handler.set_auth(self.auth_handler.add_auth_header())
+
     @property
     def proxies(self):
         return self._proxies
@@ -70,15 +89,28 @@ class SensorThingsService:
             self._proxies = None
             return
         elif not isinstance(value, dict):
-            raise ValueError('Proxies must be a Dictionary!')
+            raise ValueError("Proxies must be a Dictionary!")
         self._proxies = value
-    
-    
+
     def execute(self, method, url, **kwargs):
-        if self.auth_handler is not None:
-            response = requests.request(method, url, proxies=self.proxies, auth=self.auth_handler.add_auth_header(), **kwargs)
+
+        if self.session_handler is not None:
+            request_session = self.session_handler.get_session()
+            response = request_session.request(
+                method=method, url=url, proxies=self.proxies, **kwargs
+            )
+        elif self.auth_handler is not None:
+            response = requests.request(
+                method=method,
+                url=url,
+                proxies=self.proxies,
+                auth=self.auth_handler.add_auth_header(),
+                **kwargs,
+            )
         else:
-            response = requests.request(method, url, proxies=self.proxies, **kwargs)
+            response = requests.request(
+                method=method, url=url, proxies=self.proxies, **kwargs
+            )
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
@@ -91,10 +123,12 @@ class SensorThingsService:
             return relation
         this_entity_type = entity_type.get_list_for_class(type(parent))
         _id = f"'{parent.id}'" if isinstance(parent.id, str) else parent.id
-        return "{entity_type}({id})/{relation}".format(entity_type=this_entity_type, id=_id, relation=relation)
+        return "{entity_type}({id})/{relation}".format(
+            entity_type=this_entity_type, id=_id, relation=relation
+        )
 
     def get_full_path(self, parent, relation):
-        slash = "" if self.url.pathstr[-1] == '/' else "/"
+        slash = "" if self.url.pathstr[-1] == "/" else "/"
         url = self.url.url + slash + self.get_path(parent, relation)
         return furl(url)
 
