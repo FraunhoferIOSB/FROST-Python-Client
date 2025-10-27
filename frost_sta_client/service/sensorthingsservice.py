@@ -94,7 +94,7 @@ class SensorThingsService:
         return "{entity_type}({id})/{relation}".format(entity_type=this_entity_type, id=_id, relation=relation)
 
     def get_full_path(self, parent, relation):
-        slash = "" if self.url.pathstr[-1] == '/' else "/"
+        slash = "" if str(self.url.path).endswith('/') else "/"
         url = self.url.url + slash + self.get_path(parent, relation)
         return furl(url)
 
