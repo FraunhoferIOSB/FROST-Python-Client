@@ -20,6 +20,7 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: "3.12"
+        cache: pip
     - name: Install dependencies
       run: |
         echo '#!/usr/bin/env bash' | sudo tee /usr/local/bin/podman >/dev/null
@@ -31,6 +32,19 @@ jobs:
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with flake8
+    - name: Start FROST Server
+      run: |
+        docker compose -f frost_server/docker-compose.yaml up -d
+        echo "Waiting for FROST-Server to be ready..."
+        for i in {1..60}; do
+          if curl -fsS http://localhost:8080/FROST-Server >/dev/null; then
+            break
+          fi
+          sleep 2
+        done
+    - name: Generate SensorThings model (OData)
+      run: |
+        python -m frost_sta_client.odata_codegen.install_model --url http://localhost:8080/FROST-Server --username admin --password admin
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
