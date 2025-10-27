@@ -16,7 +16,7 @@ from frost_sta_client.model.sensor import Sensor
 from frost_sta_client.model.task import Task
 from frost_sta_client.model.tasking_capability import TaskingCapability
 from frost_sta_client.model.thing import Thing
-from frost_sta_client.model.ext.unitofmeasurement import UnitOfMeasurement
+from frost_sta_client.generated.odata.datamodel import UnitOfMeasurement
 from frost_sta_client.service.sensorthingsservice import SensorThingsService
 from frost_sta_client.service.auth_handler import AuthHandler
 from frost_sta_client.model.ext.entity_type import EntityTypes

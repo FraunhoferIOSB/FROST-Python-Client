@@ -9,7 +9,7 @@ from frost_sta_client.model.multi_datastream import MultiDatastream
 from frost_sta_client.model.actuator import Actuator
 from frost_sta_client.model.tasking_capability import TaskingCapability
 from frost_sta_client.model.task import Task
-from frost_sta_client.model.ext.unitofmeasurement import UnitOfMeasurement
+from frost_sta_client.generated.odata.datamodel import UnitOfMeasurement
 
 def test_equality_thing():
     a = Thing(id=1, name='A', description='d', properties={'x': 1})

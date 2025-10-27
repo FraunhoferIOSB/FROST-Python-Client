@@ -10,7 +10,7 @@ from frost_sta_client.model.tasking_capability import TaskingCapability
 from frost_sta_client.model.actuator import Actuator
 from frost_sta_client.model.historical_location import HistoricalLocation
 from frost_sta_client.model.location import Location
-from frost_sta_client.model.ext.unitofmeasurement import UnitOfMeasurement
+from frost_sta_client.generated.odata.datamodel import UnitOfMeasurement
 
 def test_observed_property_properties_must_be_dict():
     op = ObservedProperty()

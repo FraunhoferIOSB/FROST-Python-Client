@@ -161,7 +161,6 @@ def write_wrapper(model_dir: str, singular: str, relations: List[str]) -> None:
     path = os.path.join(model_dir, f"{file_name}.py")
     imports: List[str] = []
     imports.append("from frost_sta_client.generated.odata import datamodel as _mdl")
-    imports.append("from frost_sta_client.model.ext import unitofmeasurement as _uom")
     imports.append("from frost_sta_client.model.ext import entity_type as _etype")
     # DAO imports
     dao_mod = file_name
@@ -169,9 +168,6 @@ def write_wrapper(model_dir: str, singular: str, relations: List[str]) -> None:
     imports.append(f"from frost_sta_client.dao.{dao_mod} import {dao_class}")
     imports.append("")
     body: List[str] = []
-    body.append("# Ensure generated datamodel uses ext.UnitOfMeasurement for compatibility")
-    body.append("_mdl.UnitOfMeasurement = _uom.UnitOfMeasurement")
-    body.append("")
     body.append(f"class {singular}(_mdl.{singular}):")
     body.append(f"    \"\"\"Compatibility wrapper around code-generated {singular} to provide DAO accessors.\"\"\"")
     body.append("    def get_dao(self, service):")

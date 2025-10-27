@@ -3,7 +3,7 @@ import os
 pytestmark = pytest.mark.skipif(os.environ.get('FROST_STA_CLIENT_RUN_INTEGRATION') != '1', reason='Integration tests require FROST server. Set FROST_STA_CLIENT_RUN_INTEGRATION=1 to run.')
 from geojson import Point
 from frost_sta_client.model import thing, sensor, observedproperty, datastream, observation, feature_of_interest
-from frost_sta_client.model.ext import unitofmeasurement
+from frost_sta_client.generated.odata.datamodel import UnitOfMeasurement
 
 
 def test_create_thing(sensorthings_service):
@@ -34,7 +34,7 @@ def test_crud_datastream(sensorthings_service):
         definition='http://www.example.org/op',
         description='OP')
     sensorthings_service.create(op)
-    um = unitofmeasurement.UnitOfMeasurement(
+    um = UnitOfMeasurement(
         name="degree Celsius",
         symbol="°C",
         definition="physical definition...")
@@ -84,7 +84,7 @@ def test_crud_observation(sensorthings_service):
         definition='http://www.example.org/op_obs',
         description='OP Obs')
     sensorthings_service.create(op)
-    um = unitofmeasurement.UnitOfMeasurement(
+    um = UnitOfMeasurement(
         name="degree Celsius",
         symbol="°C",
         definition="physical definition...")

@@ -3,7 +3,7 @@ import os
 pytestmark = pytest.mark.skipif(os.environ.get('FROST_STA_CLIENT_RUN_INTEGRATION') != '1', reason='Integration tests require FROST server. Set FROST_STA_CLIENT_RUN_INTEGRATION=1 to run.')
 from geojson import Point
 from frost_sta_client.model import thing, sensor, observedproperty, datastream, feature_of_interest
-from frost_sta_client.model.ext import unitofmeasurement
+from frost_sta_client.generated.odata.datamodel import UnitOfMeasurement
 from frost_sta_client.model.ext.data_array_value import DataArrayValue as DAV
 from frost_sta_client.model.ext.data_array_document import DataArrayDocument
 from frost_sta_client.model.observation import Observation
@@ -47,7 +47,7 @@ def test_create_observations_with_data_array(sensorthings_service):
     sensorthings_service.create(s)
     op = observedproperty.ObservedProperty(name='OP DA', definition='http://op.example.org', description='op')
     sensorthings_service.create(op)
-    u = unitofmeasurement.UnitOfMeasurement(name='degree Celsius', symbol='°C', definition='ucum:Cel')
+    u = UnitOfMeasurement(name='degree Celsius', symbol='°C', definition='ucum:Cel')
     ds = datastream.Datastream(name='DS DA', description='d', observation_type='OM_Measurement', unit_of_measurement=u, thing=t, sensor=s, observed_property=op)
     sensorthings_service.create(ds)
     foi = feature_of_interest.FeatureOfInterest(name='FOI DA', description='d', encoding_type='application/geo+json', feature=Point((9.1, 48.7)))

@@ -90,7 +90,7 @@ EntityTypes = {
     'UnitOfMeasurement': {
         'singular': 'UnitOfMeasurement',
         'plural': 'UnitOfMeasurements',
-        'class': 'frost_sta_client.model.ext.unitofmeasurement.UnitOfMeasurement'
+        'class': 'frost_sta_client.generated.odata.datamodel.UnitOfMeasurement'
     },
     'EntityList': {
         'singular': 'EntityList',
