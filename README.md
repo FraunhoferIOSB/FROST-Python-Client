@@ -134,16 +134,59 @@ module is set to demjson3 per default. The backend can be modified by calling
 
 ### OData Code Generation
 
-Optionally, you can generate Python source code for the OData data model exposed by a FROST-Server (if the OData plugin is enabled).
+Since version 2.0.0 this client supports general OData models hosted by FROST servers with active OData plugin.
 
-- The generator tries ODATA_4.01 first, then ODATA_4.0 ($metadata).
-- If no OData endpoint is available, the generator falls back to the provided metadata.xml (default data model) and generates code from it.
-
-Usage:
+For this purpose the client provides a command line interface for generating a python module containing the URL of the FROST server in use as well as source code for the Python classes corresponding to the data model contained in it. It is called like this:
 ```bash
-frost-codegen --url http://localhost:8080/FROST-Server --out frost_sta_client/generated/odata --module datamodel
+frost-codegen --url http://localhost:8080/FROST-Server --out my_datamodel
+```
+The generator tries the OData 4.01 endpoint of the FROST server in use first and falls back to the OData 4.0 if the other one is not available.
+
+In order to use the custom data model it needs to be imported in the source code. The corresponding service needs to be created with paramter `model` instead of `url`. In fact, the following two programs are equivalent:
+```
+import frost_sta_client as fsc
+import .my_datamodel as my_model
+
+service = fsc.SensorThingsService(model=my_model)
+ 
+my_entity = my_model.MyEntityClass(...)
+service.create(my_entity)
 ```
 
-Notes:
-- The generated code is not used automatically; import and use it as needed.
-- This feature is backward-compatible. If you wish to replace the hand-written model with generated code, point --out to frost_sta_client/model and adapt imports accordingly.
+For backward compatibility, a client for a FROST server containing the SensorThings data model can be used as in previous versions of this client. In fact, the following two programs are equivalent in this case:
+
+Variant I:
+```
+import frost_sta_client as fsc
+from geojson import Point
+
+url = "http://localhost:8080/FROST-Server"
+service = fsc.SensorThingsService(url)
+
+point = Point((-115.81, 37.24))
+location = fsc.Location(name="here", description="and there", location=point, encoding_type='application/geo+json')
+thing = fsc.Thing(name='new thing',
+              description='I am a thing with a location',
+              properties={'withLocation': True, 'owner': 'IOSB'})
+thing.locations = [location]
+service.create(thing)
+```
+
+Variant II:
+```
+import frost_sta_client as fsc
+import .my_datamodel as my_model
+from geojson import Point
+
+service = fsc.SensorThingsService(model=my_model)
+
+point = Point((-115.81, 37.24))
+location = my_model.Location(name="here", description="and there", location=point, encoding_type='application/geo+json')
+thing = my_model.Thing(name='new thing',
+                    description='I am a thing with a location',
+                    properties={'withLocation': True, 'owner': 'IOSB'})
+thing.locations = [location]
+service.create(thing)
+```
+
+However, variant II also works for data models different from SensorThings.
