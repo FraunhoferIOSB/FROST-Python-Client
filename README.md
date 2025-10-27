@@ -179,10 +179,11 @@ import .my_datamodel as my_model
 from geojson import Point
 
 service = fsc.SensorThingsService(model=my_model)
+m = service.model
 
 point = Point((-115.81, 37.24))
-location = my_model.Location(name="here", description="and there", location=point, encoding_type='application/geo+json')
-thing = my_model.Thing(name='new thing',
+location = m.Location(name="here", description="and there", location=point, encoding_type='application/geo+json')
+thing = m.Thing(name='new thing',
                     description='I am a thing with a location',
                     properties={'withLocation': True, 'owner': 'IOSB'})
 thing.locations = [location]
