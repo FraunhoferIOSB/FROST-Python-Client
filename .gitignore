@@ -3,6 +3,4 @@ dist
 **/__pycache__
 **.egg-info/
 
-pyproject.toml
-
 frost_sta_client/generated/
