@@ -132,6 +132,9 @@ class MultiDatastream(entity.Entity):
 
     @observation_type.setter
     def observation_type(self, value):
+        if value is None:
+            self._observation_type = None
+            return
         if not isinstance(value, str):
             raise ValueError('observation_type should be of type str!')
         self._observation_type = value
