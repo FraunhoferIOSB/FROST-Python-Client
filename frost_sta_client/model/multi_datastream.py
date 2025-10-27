@@ -132,6 +132,9 @@ class MultiDatastream(entity.Entity):
 
     @observation_type.setter
     def observation_type(self, value):
+        if value is None:
+            self._observation_type = None
+            return
         if not isinstance(value, str):
             raise ValueError('observation_type should be of type str!')
         self._observation_type = value
@@ -310,7 +313,8 @@ class MultiDatastream(entity.Entity):
         self.name = state.get('name', None)
         self.description = state.get('description', None)
         self.observation_type = state.get('observationType', None)
-        self.observation_area = state.get('observedArea', None)
+        if state.get('observedArea', None) is not None:
+            self.observed_area = frost_sta_client.utils.process_area(state['observedArea'])
         self.phenomenon_time = state.get('phenomenonTime', None)
         self.result_time = state.get('resultTime', None)
         self.properties = state.get('properties', None)

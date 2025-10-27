@@ -170,11 +170,11 @@ class Actuator(entity.Entity):
 
     def __setstate__(self, state):
         super().__setstate__(state)
-        self.name = state.get("name", None)
-        self.description = state.get("description", None)
+        self.name = state.get("name", "")
+        self.description = state.get("description", "")
         self.encoding_type = state.get("encodingType", "")
         self.metadata = state.get("metadata", "")
-        self.properties = state.get("properties", None)
+        self.properties = state.get("properties", {})
         if state.get("TaskingCapabilities", None) is not None and isinstance(state["TaskingCapabilities"], list):
             entity_class = entity_type.EntityTypes['TaskingCapability']['class']
             self.tasking_capabilities = utils.transform_json_to_entity_list(state['TaskingCapabilities'], entity_class)
