@@ -138,11 +138,15 @@ Since version 2.0.0 this client supports general OData models hosted by FROST se
 
 For this purpose the client provides a command line interface for generating a service module containing the URL of the FROST server in use as well as source code for the Python classes corresponding to the data model contained in the server. It is called like this:
 ```bash
-frost-codegen --url http://localhost:8080/FROST-Server --out my_service_module
+frost-codegen --url http://localhost:8080/FROST-Server/ODATA_4.01/ --out my_service_module
 ```
-The generator tries the OData 4.01 endpoint of the FROST server in use first and falls back to the OData 4.0 if the other one is not available. If even the latter is not available the generator fails.
+or
+```bash
+frost-codegen --url http://localhost:8080/FROST-Server/ODATA_4.0/ --out my_service_module
+```
+making use of the OData 4.01 or OData 4.0 endpoint of the FROST server, respectively.
 
-In order to use the generated module, it needs to be imported in the source code. The corresponding service needs to be created with parameter `model` instead of `url`. In case the FROST server in use contains the SensorThings data model and has an activated OData plugin, the following two programs are equivalent:
+In order to use the generated module, it needs to be imported in the source code. In case the FROST server in use contains the SensorThings data model and has an activated OData plugin, the following two programs are equivalent:
 
 Variant I:
 ```
