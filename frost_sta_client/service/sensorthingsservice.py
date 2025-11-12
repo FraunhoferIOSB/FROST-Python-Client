@@ -17,6 +17,8 @@
 import requests
 from furl import furl
 import logging
+import importlib
+import sys
 
 from frost_sta_client.dao import *
 from frost_sta_client.service import auth_handler
@@ -98,18 +100,69 @@ class SensorThingsService:
         url = self.url.url + slash + self.get_path(parent, relation)
         return furl(url)
 
+    def _generic_odata_dao_for_entity(self, entity):
+        """Return GenericODataDao if entity is from a code-generated OData module; otherwise None."""
+        try:
+            mod_name = entity.__class__.__module__
+            mod = sys.modules.get(mod_name) or importlib.import_module(mod_name)
+            mapping = getattr(mod, 'ENTITY_SETS', None)
+            if not isinstance(mapping, dict):
+                return None
+            entity_set = None
+            for es_name, cls in mapping.items():
+                if cls is entity.__class__ or isinstance(entity, cls):
+                    entity_set = es_name
+                    break
+            if not entity_set:
+                return None
+            from frost_sta_client.dao.generic_odata import GenericODataDao
+            return GenericODataDao(self, entity_set, mod)
+        except Exception:
+            return None
+
     def create(self, entity):
-        entity.get_dao(self).create(entity)
+        dao_getter = getattr(entity, 'get_dao', None)
+        if callable(dao_getter):
+            entity.get_dao(self).create(entity)
+            return
+        gen = self._generic_odata_dao_for_entity(entity)
+        if gen:
+            gen.create(entity)
+            return
+        raise ValueError('No DAO found for entity and it is not a generated OData class')
 
     def update(self, entity):
-        entity.get_dao(self).update(entity)
+        dao_getter = getattr(entity, 'get_dao', None)
+        if callable(dao_getter):
+            entity.get_dao(self).update(entity)
+            return
+        gen = self._generic_odata_dao_for_entity(entity)
+        if gen:
+            gen.update(entity)
+            return
+        raise ValueError('No DAO found for entity and it is not a generated OData class')
 
     def patch(self, entity, patches):
-        entity.get_dao(self).patch(entity, patches)
+        dao_getter = getattr(entity, 'get_dao', None)
+        if callable(dao_getter):
+            entity.get_dao(self).patch(entity, patches)
+            return
+        gen = self._generic_odata_dao_for_entity(entity)
+        if gen:
+            gen.patch(entity, patches)
+            return
+        raise ValueError('No DAO found for entity and it is not a generated OData class')
 
     def delete(self, entity):
-        entity.get_dao(self).delete(entity)
-
+        dao_getter = getattr(entity, 'get_dao', None)
+        if callable(dao_getter):
+            entity.get_dao(self).delete(entity)
+            return
+        gen = self._generic_odata_dao_for_entity(entity)
+        if gen:
+            gen.delete(entity)
+            return
+        raise ValueError('No DAO found for entity and it is not a generated OData class')
     def actuators(self):
         return actuator.ActuatorDao(self)
 

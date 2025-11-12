@@ -6,21 +6,22 @@ name: pytesting
 on:
   push:
     branches: [ master ]
-#  pull_request:
-#    branches: [ master ]
+  # pull_request:
+  #   branches: [ master ]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python 3.12
       uses: actions/setup-python@v2
       with:
         python-version: "3.12"
         cache: pip
+
     - name: Install dependencies
       run: |
         echo '#!/usr/bin/env bash' | sudo tee /usr/local/bin/podman >/dev/null
@@ -31,7 +32,14 @@ jobs:
         python3 -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
     - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
     - name: Start FROST Server
       run: |
         docker compose -f frost_server/docker-compose.yaml up -d
@@ -42,15 +50,12 @@ jobs:
           fi
           sleep 2
         done
+
     - name: Generate SensorThings model (OData)
       run: |
         python -m frost_sta_client.odata_codegen.install_model --url http://localhost:8080/FROST-Server --username admin --password admin
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
     - name: Test with pytest
       run: |
         export FROST_STA_CLIENT_RUN_INTEGRATION=1
-        python -m pytest
+        python -m pytest -q

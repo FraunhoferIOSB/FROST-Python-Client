@@ -1,4 +1,5 @@
 from typing import Optional, Dict, Any, Tuple
+import re
 import requests
 
 def _join(base: str, suffix: str) -> str:
@@ -7,26 +8,75 @@ def _join(base: str, suffix: str) -> str:
     return f"{base}/{suffix}"
 
 def find_odata_endpoint(base_url: str, auth: Any = None, timeout: int = 10) -> Optional[Dict[str, str]]:
-    """Try to detect OData endpoint ($metadata) for a FROST-Server.
+    """Detect OData $metadata endpoint for a FROST-Server or accept direct OData URLs.
 
-    Tries ODATA_4.01 first, then ODATA_4.0. Returns dict with
-    {'version': '4.01'|'4.0', 'metadata_url': url} or None.
+    Accepts:
+      - Base server URL (e.g., http://host:8080/FROST-Server) → tries ODATA_4.01 then ODATA_4.0
+      - Direct OData root (e.g., .../ODATA_4.01) → uses that plus $metadata
+      - Direct metadata URL (e.g., .../ODATA_4.01/$metadata) → uses as-is
+
+    Returns dict: {'version': '4.01'|'4.0', 'metadata_url': url} or None.
     """
-    candidates = [
-        ("4.01", _join(base_url, "ODATA_4.01/$metadata")),
-        ("4.0", _join(base_url, "ODATA_4.0/$metadata")),
-    ]
+    # Normalize
+    base = base_url.rstrip('/')
     headers = {"Accept": "application/xml, application/xml;q=0.9, */*;q=0.8"}
-    for version, url in candidates:
+
+    def _check_and_return(url: str, hinted_version: Optional[str] = None) -> Optional[Dict[str, str]]:
         try:
             resp = requests.get(url, headers=headers, auth=auth, timeout=timeout)
-            if resp.status_code == 200:
-                # Basic sanity check
-                txt = resp.text or ""
-                if "<Edmx" in txt or "<edmx:Edmx" in txt:
-                    return {"version": version, "metadata_url": url}
+            if resp.status_code != 200:
+                return None
+            txt = resp.text or ""
+            if "<Edmx" not in txt and "<edmx:Edmx" not in txt:
+                return None
+            # Try to detect version from content if not hinted.
+            version = hinted_version
+            if version is None:
+                m = re.search(r"Version=\"(4\.01|4\.0)\"", txt)
+                if m:
+                    version = m.group(1)
+            # Fallback: infer from path if still unknown
+            if version is None:
+                if "/ODATA_4.01/" in url or url.endswith("/ODATA_4.01/$metadata"):
+                    version = "4.01"
+                elif "/ODATA_4.0/" in url or url.endswith("/ODATA_4.0/$metadata"):
+                    version = "4.0"
+                else:
+                    version = "4.01"  # sensible default
+            return {"version": version, "metadata_url": url}
         except Exception:
-            pass
+            return None
+
+    # Case A: already $metadata URL
+    if base.endswith("/$metadata"):
+        info = _check_and_return(base, hinted_version=None)
+        if info:
+            return info
+        return None
+
+    # Case B: direct ODATA_4.x root given
+    if base.endswith("/ODATA_4.01") or base.endswith("/ODATA_4.0"):
+        if base.endswith("/ODATA_4.01"):
+            url = f"{base}/$metadata"
+            info = _check_and_return(url, hinted_version="4.01")
+            if info:
+                return info
+        else:
+            url = f"{base}/$metadata"
+            info = _check_and_return(url, hinted_version="4.0")
+            if info:
+                return info
+        return None
+
+    # Case C: try discovering from base server URL
+    candidates = [
+        ("4.01", _join(base, "ODATA_4.01/$metadata")),
+        ("4.0", _join(base, "ODATA_4.0/$metadata")),
+    ]
+    for version, url in candidates:
+        info = _check_and_return(url, hinted_version=version)
+        if info:
+            return info
     return None
 
 def fetch_metadata(metadata_url: str, auth: Any = None, timeout: int = 10) -> str:
