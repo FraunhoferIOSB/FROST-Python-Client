@@ -142,7 +142,7 @@ frost-codegen --url http://localhost:8080/FROST-Server --out my_service_module
 ```
 The generator tries the OData 4.01 endpoint of the FROST server in use first and falls back to the OData 4.0 if the other one is not available. If even the latter is not available the generator fails.
 
-In order to use the generated module, it needs to be imported in the source code. The corresponding service needs to be created with parameter `model` instead of `url`. In case the FROST server in use contains the SensorThings data model, the following two programs are equivalent:
+In order to use the generated module, it needs to be imported in the source code. The corresponding service needs to be created with parameter `model` instead of `url`. In case the FROST server in use contains the SensorThings data model and has an activated OData plugin, the following two programs are equivalent:
 
 Variant I:
 ```
@@ -155,8 +155,8 @@ service = fsc.SensorThingsService(url)
 point = Point((-115.81, 37.24))
 location = fsc.Location(name="here", description="and there", location=point, encoding_type='application/geo+json')
 thing = fsc.Thing(name='new thing',
-              description='I am a thing with a location',
-              properties={'withLocation': True, 'owner': 'IOSB'})
+                  description='I am a thing with a location',
+                  properties={'withLocation': True, 'owner': 'IOSB'})
 thing.locations = [location]
 service.create(thing)
 ```
@@ -164,14 +164,15 @@ service.create(thing)
 Variant II:
 ```
 import frost_sta_client as fsc
-import my_service_module as mdl
+import my_model as model
 from geojson import Point
 
-service = fsc.SensorThingsService(model=mdl)
+url = "http://localhost:8080/FROST-Server"
+service = fsc.SensorThingsService(url)
 
 point = Point((-115.81, 37.24))
-location = mdl.Location(name="here", description="and there", location=point, encoding_type='application/geo+json')
-thing = mdl.Thing(name='new thing',
+location = model.Location(name="here", description="and there", location=point, encoding_type='application/geo+json')
+thing = model.Thing(name='new thing',
                     description='I am a thing with a location',
                     properties={'withLocation': True, 'owner': 'IOSB'})
 thing.locations = [location]
