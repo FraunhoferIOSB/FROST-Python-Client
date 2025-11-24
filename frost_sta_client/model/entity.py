@@ -15,7 +15,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from abc import ABC
-from frost_sta_client.service.sensorthingsservice import SensorThingsService
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from frost_sta_client.service.sensorthingsservice import SensorThingsService
 
 
 class Entity(ABC):
@@ -60,7 +62,14 @@ class Entity(ABC):
 
     @service.setter
     def service(self, value):
-        if value is None or isinstance(value, SensorThingsService):
+        if value is None:
+            self._service = None
+            return
+        try:
+            from frost_sta_client.service.sensorthingsservice import SensorThingsService as STS
+        except Exception:
+            STS = None
+        if STS is not None and isinstance(value, STS):
             self._service = value
             return
         raise ValueError('service should be of type SensorThingsService')

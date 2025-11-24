@@ -1,11 +1,11 @@
 import argparse
-import importlib
 import os
-import sys
+import re
 from typing import Dict, List, Optional, Tuple
 
 from frost_sta_client.odata_codegen.generator import generate_from_url
 
+# Map entity names to model file names
 ENTITY_FILE_MAP: Dict[str, Optional[str]] = {
     'Actuator': 'actuator',
     'Datastream': 'datastream',
@@ -24,18 +24,32 @@ ENTITY_FILE_MAP: Dict[str, Optional[str]] = {
     'EntityList': None,
 }
 
+# Map entity names to DAO module filenames where they differ from model filenames
+DAO_FILE_MAP: Dict[str, Optional[str]] = {
+    'FeatureOfInterest': 'features_of_interest',
+}
+
+# Map entity names to DAO class names where they differ from the default <Singular>Dao
+DAO_CLASS_MAP: Dict[str, Optional[str]] = {
+    'FeatureOfInterest': 'FeaturesOfInterestDao',
+}
+
 def ensure_dir(path: str) -> None:
     os.makedirs(path, exist_ok=True)
 
 def write_entity_base(model_dir: str) -> None:
+    """Write a base Entity class used by generated datamodel classes and wrappers."""
     path = os.path.join(model_dir, 'entity.py')
     lines = [
         "from abc import ABC",
-        "from frost_sta_client.service.sensorthingsservice import SensorThingsService",
+        "from typing import TYPE_CHECKING, Any",
+        "if TYPE_CHECKING:",
+        "    from frost_sta_client.service.sensorthingsservice import SensorThingsService",
         "",
         "class Entity(ABC):",
         "    \"\"\"Base class for entities with id, self_link and service propagation.\"\"\"",
-        "    def __init__(self, id=None, self_link='', service=None):",
+        "    def __init__(self, id=None, self_link: str = '', service=None, **kwargs: Any):",
+        "        # Accept **kwargs to stay forward-compatible with generated models.",
         "        self.id = id",
         "        self.self_link = self_link",
         "        self.service = service",
@@ -70,7 +84,14 @@ def write_entity_base(model_dir: str) -> None:
         "",
         "    @service.setter",
         "    def service(self, value):",
-        "        if value is None or isinstance(value, SensorThingsService):",
+        "        if value is None:",
+        "            self._service = None",
+        "            return",
+        "        try:",
+        "            from frost_sta_client.service.sensorthingsservice import SensorThingsService as STS",
+        "        except Exception:",
+        "            STS = None",
+        "        if STS is not None and isinstance(value, STS):",
         "            self._service = value",
         "            return",
         "        raise ValueError('service should be of type SensorThingsService')",
@@ -117,7 +138,7 @@ def write_entity_base(model_dir: str) -> None:
         "            return False",
         "        if not isinstance(other, type(self)):",
         "            return False",
-        "        if id(self) == id(other):",
+        "        if id(self) == id(other):",	
         "            return True",
         "        if self.id is not None and other.id is not None:",
         "            if self.id != other.id:",
@@ -136,8 +157,7 @@ def write_entity_base(model_dir: str) -> None:
         "    def __setstate__(self, state):",
         "        self.id = state.get('@iot.id', None)",
         "        self.self_link = state.get('@iot.selfLink', '')",
-        "",
-            ]
+    ]
     with open(path, 'w', encoding='utf-8') as fh:
         fh.write('\n'.join(lines) + '\n')
 
@@ -154,7 +174,12 @@ def find_rel_info(entity_types: Dict[str, Dict[str, str]], name: str) -> Optiona
             return k, v
     return None
 
+def _to_snake(name: str) -> str:
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
 def write_wrapper(model_dir: str, singular: str, relations: List[str]) -> None:
+    """Write a thin wrapper class around the generated datamodel entity that provides DAO accessors and validation setters."""
     file_name = ENTITY_FILE_MAP.get(singular)
     if not file_name:
         return
@@ -162,17 +187,112 @@ def write_wrapper(model_dir: str, singular: str, relations: List[str]) -> None:
     imports: List[str] = []
     imports.append("from frost_sta_client.generated.odata import datamodel as _mdl")
     imports.append("from frost_sta_client.model.ext import entity_type as _etype")
+    imports.append("from frost_sta_client import utils")
     # DAO imports
-    dao_mod = file_name
-    dao_class = singular + 'Dao'
+    dao_mod = DAO_FILE_MAP.get(singular, file_name)
+    dao_class = DAO_CLASS_MAP.get(singular, singular + 'Dao')
     imports.append(f"from frost_sta_client.dao.{dao_mod} import {dao_class}")
     imports.append("")
+
     body: List[str] = []
     body.append(f"class {singular}(_mdl.{singular}):")
     body.append(f"    \"\"\"Compatibility wrapper around code-generated {singular} to provide DAO accessors.\"\"\"")
     body.append("    def get_dao(self, service):")
     body.append(f"        return {dao_class}(service)")
     body.append("")
+
+    # Generic __getstate__ hook to drop empty Properties
+    body.append("    def __getstate__(self):")
+    body.append("        data = super().__getstate__()")
+    body.append("        if isinstance(data.get('Properties', None), dict) and not data['Properties']:")
+    body.append("            del data['Properties']")
+    body.append("        return data")
+    body.append("")
+
+    # Validation setters for specific entities
+    if singular in ('ObservedProperty', 'Thing', 'Sensor', 'Datastream', 'Task', 'TaskingCapability'):
+        body.append("    @property")
+        body.append("    def properties(self):")
+        body.append("        return getattr(self, '_properties', None)")
+        body.append("")
+        body.append("    @properties.setter")
+        body.append("    def properties(self, value):")
+        body.append("        if value is None:")
+        body.append("            self._properties = None")
+        body.append("            return")
+        body.append("        if not isinstance(value, dict):")
+        body.append("            raise ValueError('properties should be of type dict!')")
+        body.append("        self._properties = value")
+        body.append("")
+
+    if singular == 'Observation':
+        body.append("    @property")
+        body.append("    def parameters(self):")
+        body.append("        return getattr(self, '_parameters', None)")
+        body.append("")
+        body.append("    @parameters.setter")
+        body.append("    def parameters(self, value):")
+        body.append("        if value is None:")
+        body.append("            self._parameters = None")
+        body.append("            return")
+        body.append("        if not isinstance(value, dict):")
+        body.append("            raise ValueError('parameters should be of type dict!')")
+        body.append("        self._parameters = value")
+        body.append("")
+
+    if singular == 'FeatureOfInterest':
+        body.append("    @property")
+        body.append("    def feature(self):")
+        body.append("        return getattr(self, '_feature', None)")
+        body.append("")
+        body.append("    @feature.setter")
+        body.append("    def feature(self, value):")
+        body.append("        if value is None:")
+        body.append("            self._feature = None")
+        body.append("            return")
+        body.append("        try:")
+        body.append("            self._feature = utils.geometry_to_json(value)")
+        body.append("        except ValueError:")
+        body.append("            # Tests expect TypeError for unsupported types")
+        body.append("            raise TypeError('feature should be a valid GeoJSON geometry')")
+        body.append("")
+
+    if singular == 'MultiDatastream':
+        # observed_area validation
+        body.append("    @property")
+        body.append("    def observed_area(self):")
+        body.append("        return getattr(self, '_observed_area', None)")
+        body.append("")
+        body.append("    @observed_area.setter")
+        body.append("    def observed_area(self, value):")
+        body.append("        if value is None:")
+        body.append("            self._observed_area = None")
+        body.append("            return")
+        body.append("        try:")
+        body.append("            self._observed_area = utils.geometry_to_json(value)")
+        body.append("        except ValueError:")
+        body.append("            # Tests expect ValueError for invalid observed_area")
+        body.append("            raise ValueError('observed_area should be a valid GeoJSON geometry')")
+        body.append("")
+        # multi_observation_data_types accepts str or list[str]
+        body.append("    @property")
+        body.append("    def multi_observation_data_types(self):")
+        body.append("        return getattr(self, '_multi_observation_data_types', None)")
+        body.append("")
+        body.append("    @multi_observation_data_types.setter")
+        body.append("    def multi_observation_data_types(self, value):")
+        body.append("        if value is None:")
+        body.append("            self._multi_observation_data_types = None")
+        body.append("            return")
+        body.append("        if isinstance(value, str):")
+        body.append("            self._multi_observation_data_types = value")
+        body.append("            return")
+        body.append("        if isinstance(value, list) and all(isinstance(x, str) for x in value):")
+        body.append("            self._multi_observation_data_types = value")
+        body.append("            return")
+        body.append("        raise ValueError('multi_observation_data_types should be str or list[str]!')")
+        body.append("")
+
     # Navigation accessors
     etypes = load_entity_types()
     for rel in relations:
@@ -181,31 +301,25 @@ def write_wrapper(model_dir: str, singular: str, relations: List[str]) -> None:
             continue
         rel_singular, rel_meta = info
         plural = rel_meta.get('plural', rel + 's')
-        method = plural.lower()
+        method = _to_snake(plural)
         accessor = f"get_{method}"
         body.append(f"    def {accessor}(self):")
         body.append(f"        result = self.service.{method}()")
         body.append("        result.parent = self")
         body.append("        return result")
         body.append("")
+
     with open(path, 'w', encoding='utf-8') as fh:
         fh.write('\n'.join(imports + body) + '\n')
 
 def write_model_init(model_dir: str, entities: List[str]) -> None:
+    """Write a minimal __init__ for frost_sta_client.model to avoid circular imports."""
     path = os.path.join(model_dir, '__init__.py')
     parts = [
-        "# Auto-generated by install_model to expose model submodules for class resolution",
+        "# Auto-generated by install_model: keep package lightweight to avoid circular imports.",
+        "# Entity wrappers are imported on-demand by user code and utils.class_from_string.",
+        ""
     ]
-    # Import submodules so they are present in sys.modules (used by utils.class_from_string)
-    subs: List[str] = []
-    for singular in entities:
-        mod = ENTITY_FILE_MAP.get(singular)
-        if mod:
-            subs.append(mod)
-    if subs:
-        joined = ', '.join(subs)
-        parts.append(f"from frost_sta_client.model import {joined}")
-    parts.append("")
     with open(path, 'w', encoding='utf-8') as fh:
         fh.write('\n'.join(parts) + '\n')
 
@@ -222,7 +336,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.username is not None:
         auth = (args.username, args.password or '')
 
-    # 1) Generate datamodel module
+    # 1) Generate datamodel module (will fallback to metadata.xml if OData unavailable)
     ensure_dir(args.out)
     generate_from_url(args.url, args.out, args.module, auth=auth)
 
@@ -238,7 +352,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         relations = EntityTypes[singular].get('relations_list', [])
         write_wrapper(model_dir, singular, relations)
 
-    # 4) Write __init__.py to preload submodules
+    # 4) Write __init__.py to keep package lightweight
     write_model_init(model_dir, entities)
     return 0
 

@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="4.01" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+  <edmx:DataServices>
+    <Schema Namespace="STA" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+      <ComplexType Name="UnitOfMeasurement">
+        <Property Name="Name" Type="Edm.String"/>
+        <Property Name="Symbol" Type="Edm.String"/>
+        <Property Name="Definition" Type="Edm.String"/>
+      </ComplexType>
+
+      <EntityType Name="Actuator">
+        <Key><PropertyRef Name="Id"/></Key>
+        <Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String"/>
+        <Property Name="Description" Type="Edm.String"/>
+        <Property Name="EncodingType" Type="Edm.String"/>
+        <Property Name="Metadata" Type="Edm.String"/>
+        <Property Name="Properties" Type="Edm.Untyped"/>
+        <NavigationProperty Name="TaskingCapabilities" Type="Collection(STA.TaskingCapability)"/>
+      </EntityType>
+
+      <EntityType Name="Datastream">
+        <Key><PropertyRef Name="Id"/></Key>
+        <Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String"/>
+        <Property Name="Description" Type="Edm.String"/>
+        <Property Name="ObservationType" Type="Edm.String"/>
+        <Property Name="UnitOfMeasurement" Type="STA.UnitOfMeasurement"/>
+        <Property Name="Properties" Type="Edm.Untyped"/>
+        <NavigationProperty Name="Thing" Type="STA.Thing"/>
+        <NavigationProperty Name="Sensor" Type="STA.Sensor"/>
+        <NavigationProperty Name="ObservedProperty" Type="STA.ObservedProperty"/>
+        <NavigationProperty Name="Observations" Type="Collection(STA.Observation)"/>
+      </EntityType>
+
+      <EntityType Name="FeatureOfInterest">
+        <Key><PropertyRef Name="Id"/></Key>
+        <Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String"/>
+        <Property Name="Description" Type="Edm.String"/>
+        <Property Name="EncodingType" Type="Edm.String"/>
+        <Property Name="Feature" Type="Edm.GeometryPoint"/>
+        <Property Name="Properties" Type="Edm.Untyped"/>
+        <NavigationProperty Name="Observations" Type="Collection(STA.Observation)"/>
+      </EntityType>
+
+      <EntityType Name="HistoricalLocation">
+        <Key><PropertyRef Name="Id"/></Key>
+        <Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+        <Property Name="Time" Type="Edm.DateTimeOffset"/>
+        <NavigationProperty Name="Thing" Type="STA.Thing"/>
+        <NavigationProperty Name="Locations" Type="Collection(STA.Location)"/>
+      </EntityType>
+
+      <EntityType Name="Location">
+        <Key><PropertyRef Name="Id"/></Key>
+        <Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String"/>
+        <Property Name="Description" Type="Edm.String"/>
+        <Property Name="EncodingType" Type="Edm.String"/>
+        <Property Name="Location" Type="Edm.GeometryPoint"/>
+        <NavigationProperty Name="Things" Type="Collection(STA.Thing)"/>
+        <NavigationProperty Name="HistoricalLocations" Type="Collection(STA.HistoricalLocation)"/>
+      </EntityType>
+
+      <EntityType Name="MultiDatastream">
+        <Key><PropertyRef Name="Id"/></Key>
+        <Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String"/>
+        <Property Name="Description" Type="Edm.String"/>
+        <Property Name="ObservationType" Type="Edm.String"/>
+        <Property Name="ObservedArea" Type="Edm.Geometry"/>
+        <Property Name="MultiObservationDataTypes" Type="Edm.String"/>
+        <Property Name="Properties" Type="Edm.Untyped"/>
+        <NavigationProperty Name="Thing" Type="STA.Thing"/>
+        <NavigationProperty Name="Sensor" Type="STA.Sensor"/>
+        <NavigationProperty Name="ObservedProperties" Type="Collection(STA.ObservedProperty)"/>
+        <NavigationProperty Name="Observations" Type="Collection(STA.Observation)"/>
+      </EntityType>
+
+      <EntityType Name="Observation">
+        <Key><PropertyRef Name="Id"/></Key>
+        <Property Name="Id" Type="Edm.String" Nullable="false"/>
+        <Property Name="Result" Type="Edm.Untyped"/>
+        <Property Name="PhenomenonTime" Type="Edm.DateTimeOffset"/>
+        <Property Name="ResultTime" Type="Edm.DateTimeOffset"/>
+        <Property Name="ResultQuality" Type="Edm.String"/>
+        <Property Name="ValidTime" Type="Edm.String"/>
+        <Property Name="Parameters" Type="Edm.Untyped"/>
+        <NavigationProperty Name="FeatureOfInterest" Type="STA.FeatureOfInterest"/>
+        <NavigationProperty Name="Datastream" Type="STA.Datastream"/>
+        <NavigationProperty Name="MultiDatastream" Type="STA.MultiDatastream"/>
+      </EntityType>
+
+      <EntityType Name="ObservedProperty">
+        <Key><PropertyRef Name="Id"/></Key>
+        <Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String"/>
+        <Property Name="Definition" Type="Edm.String"/>
+        <Property Name="Description" Type="Edm.String"/>
+        <Property Name="Properties" Type="Edm.Untyped"/>
+        <NavigationProperty Name="Datastreams" Type="Collection(STA.Datastream)"/>
+        <NavigationProperty Name="MultiDatastreams" Type="Collection(STA.MultiDatastream)"/>
+      </EntityType>
+
+      <EntityType Name="Sensor">
+        <Key><PropertyRef Name="Id"/></Key>
+        <Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String"/>
+        <Property Name="Description" Type="Edm.String"/>
+        <Property Name="EncodingType" Type="Edm.String"/>
+        <Property Name="Metadata" Type="Edm.String"/>
+        <Property Name="Properties" Type="Edm.Untyped"/>
+        <NavigationProperty Name="Datastreams" Type="Collection(STA.Datastream)"/>
+        <NavigationProperty Name="MultiDatastreams" Type="Collection(STA.MultiDatastream)"/>
+      </EntityType>
+
+      <EntityType Name="Task">
+        <Key><PropertyRef Name="Id"/></Key>
+        <Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String"/>
+        <Property Name="Description" Type="Edm.String"/>
+        <Property Name="TaskingParameters" Type="Edm.Untyped"/>
+        <Property Name="CreationTime" Type="Edm.DateTimeOffset"/>
+        <Property Name="Properties" Type="Edm.Untyped"/>
+        <NavigationProperty Name="TaskingCapability" Type="STA.TaskingCapability"/>
+      </EntityType>
+
+      <EntityType Name="TaskingCapability">
+        <Key><PropertyRef Name="Id"/></Key>
+        <Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String"/>
+        <Property Name="Description" Type="Edm.String"/>
+        <Property Name="TaskingParameters" Type="Edm.Untyped"/>
+        <Property Name="Properties" Type="Edm.Untyped"/>
+        <NavigationProperty Name="Tasks" Type="Collection(STA.Task)"/>
+        <NavigationProperty Name="Actuator" Type="STA.Actuator"/>
+        <NavigationProperty Name="Thing" Type="STA.Thing"/>
+      </EntityType>
+
+      <EntityType Name="Thing">
+        <Key><PropertyRef Name="Id"/></Key>
+        <Property Name="Id" Type="Edm.Int32" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String"/>
+        <Property Name="Description" Type="Edm.String"/>
+        <Property Name="Properties" Type="Edm.Untyped"/>
+        <NavigationProperty Name="Datastreams" Type="Collection(STA.Datastream)"/>
+        <NavigationProperty Name="MultiDatastreams" Type="Collection(STA.MultiDatastream)"/>
+        <NavigationProperty Name="Locations" Type="Collection(STA.Location)"/>
+        <NavigationProperty Name="HistoricalLocations" Type="Collection(STA.HistoricalLocation)"/>
+        <NavigationProperty Name="TaskingCapabilities" Type="Collection(STA.TaskingCapability)"/>
+      </EntityType>
+
+      <EntityContainer Name="Container">
+        <EntitySet Name="Actuators" EntityType="STA.Actuator"/>
+        <EntitySet Name="Datastreams" EntityType="STA.Datastream"/>
+        <EntitySet Name="FeaturesOfInterest" EntityType="STA.FeatureOfInterest"/>
+        <EntitySet Name="HistoricalLocations" EntityType="STA.HistoricalLocation"/>
+        <EntitySet Name="Locations" EntityType="STA.Location"/>
+        <EntitySet Name="MultiDatastreams" EntityType="STA.MultiDatastream"/>
+        <EntitySet Name="Observations" EntityType="STA.Observation"/>
+        <EntitySet Name="ObservedProperties" EntityType="STA.ObservedProperty"/>
+        <EntitySet Name="Sensors" EntityType="STA.Sensor"/>
+        <EntitySet Name="Tasks" EntityType="STA.Task"/>
+        <EntitySet Name="TaskingCapabilities" EntityType="STA.TaskingCapability"/>
+        <EntitySet Name="Things" EntityType="STA.Thing"/>
+      </EntityContainer>
+    </Schema>
+  </edmx:DataServices>
+</edmx:Edmx>

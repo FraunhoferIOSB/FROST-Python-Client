@@ -24,6 +24,7 @@ import sys
 import re
 from typing import Any, Dict, List
 import frost_sta_client.model.ext.entity_list
+from frost_sta_client.model.ext.entity_type import EntityTypes
 
 
 def extract_value(location):
@@ -33,15 +34,56 @@ def extract_value(location):
         value = str(location[location.find('(')+2: location.find(')')-1])
     return value
 
+def _to_lower_camel(key: str) -> str:
+    if not key:
+        return key
+    return key[0].lower() + key[1:] if key[0].isalpha() else key
+
+def _to_pascal(key: str) -> str:
+    if not key:
+        return key
+    return key[0].upper() + key[1:] if key[0].isalpha() else key
+
+def _is_navigation_key(k: str) -> bool:
+    # Navigation sets keep TitleCase names (Datastreams, Locations, etc.)
+    plurals = {et['plural'] for et in EntityTypes.values() if 'plural' in et}
+    if k in plurals:
+        return True
+    if k.endswith('@iot.navigationLink') or k.endswith('@iot.count'):
+        return True
+    return False
+
+def _convert_keys_to_lower_camel(obj: Any) -> Any:
+    if isinstance(obj, list):
+        return [_convert_keys_to_lower_camel(x) for x in obj]
+    if not isinstance(obj, dict):
+        return obj
+    out: Dict[str, Any] = {}
+    for k, v in obj.items():
+        # Keep special/meta/navigation keys as-is
+        if k == 'value' or k.startswith('@iot.') or '@iot.' in k or _is_navigation_key(k):
+            out[k] = _convert_keys_to_lower_camel(v)
+            continue
+        new_key = _to_lower_camel(k)
+        out[new_key] = _convert_keys_to_lower_camel(v)
+    return out
+
 def transform_entity_to_json_dict(entity):
     try:
         data = entity.__getstate__()
     except AttributeError:
         data = entity.__dict__
-    return data
+    # Convert property keys from PascalCase -> lowerCamelCase while keeping navigation keys as-is
+    result = _convert_keys_to_lower_camel(data)
+    # Drop empty properties dict
+    if isinstance(result.get('properties'), dict) and not result['properties']:
+        del result['properties']
+    return result
 
 def class_from_string(string):
     module_name, class_name = string.rsplit(".", 1)
+    if module_name not in sys.modules:
+        __import__(module_name)
     return getattr(sys.modules[module_name], class_name)
 
 def _flatten_time_value(val):
@@ -54,6 +96,35 @@ def _flatten_time_value(val):
             return start
     return val
 
+def _convert_props_to_pascal(obj: Any) -> Any:
+    """Recursively convert property keys (non-@iot, non-navigation, non-'value') from lowerCamel to PascalCase for datamodel.__setstate__.
+
+    Special handling:
+    - Keep inner keys of geometry and parameter-like dictionaries as-is (lowerCamel), only convert the top-level property name:
+      location/feature/observedArea, taskingParameters, parameters.
+    """
+    if isinstance(obj, list):
+        return [_convert_props_to_pascal(x) for x in obj]
+    if not isinstance(obj, dict):
+        return obj
+    out: Dict[str, Any] = {}
+    special_passthrough = {'location', 'feature', 'observedArea', 'taskingParameters', 'parameters',
+                           'Location', 'Feature', 'ObservedArea', 'TaskingParameters', 'Parameters'}
+    for k, v in obj.items():
+        # Keep meta and navigation keys as-is
+        if k == 'value' or k.startswith('@iot.') or '@iot.' in k or _is_navigation_key(k):
+            out[k] = _convert_props_to_pascal(v)
+            continue
+        if k in special_passthrough:
+            # Convert only the container key to Pascal, keep nested dict keys unchanged
+            nk = _to_pascal(k)
+            out[nk] = v
+            continue
+        # Default: convert to Pascal and recurse
+        nk = _to_pascal(k)
+        out[nk] = _convert_props_to_pascal(v)
+    return out
+
 def normalize_sta_odata_json(obj: Any) -> Any:
     """Normalize SensorThings v1.1 and OData (4.0/4.01) JSON to STA-style keys.
 
@@ -63,6 +134,8 @@ def normalize_sta_odata_json(obj: Any) -> Any:
     - Map '*@odata.count' and '*@count' to '*@iot.count'.
     - Convert phenomenonTime/resultTime/validTime objects {start,end} to 'start/end' strings.
     - Recurse into nested dicts and lists.
+    - Convert property keys to PascalCase for datamodel.__setstate__,
+      but keep inner keys for geometry/parameters containers lowerCamel.
     """
     if isinstance(obj, list):
         return [normalize_sta_odata_json(x) for x in obj]
@@ -78,6 +151,10 @@ def normalize_sta_odata_json(obj: Any) -> Any:
         if 'id' in src and not isinstance(src.get('id'), dict):
             meta_id = src.get('id')
     meta_self_link = src.get('@iot.selfLink') or src.get('@odata.id') or src.get('@id')
+
+    # Keys where we do not recurse to preserve inner key casing
+    special_passthrough = {'location', 'feature', 'observedArea', 'taskingParameters', 'parameters',
+                           'Location', 'Feature', 'ObservedArea', 'TaskingParameters', 'Parameters'}
 
     for k, v in src.items():
         # Skip fields we normalize separately
@@ -112,12 +189,11 @@ def normalize_sta_odata_json(obj: Any) -> Any:
             dst[f'{base}@iot.count'] = v
             continue
 
-        # Recurse on nested structures
-        if k == 'value' and isinstance(v, list):
-            dst['value'] = [normalize_sta_odata_json(x) for x in v]
-            continue
-        nv = normalize_sta_odata_json(v) if isinstance(v, (dict, list)) else v
-        dst[k] = nv
+        # Recurse on nested structures unless in passthrough containers
+        if isinstance(v, (dict, list)) and k not in special_passthrough:
+            dst[k] = normalize_sta_odata_json(v)
+        else:
+            dst[k] = v
 
     # Add normalized id/selfLink if available
     if meta_id is not None:
@@ -125,11 +201,13 @@ def normalize_sta_odata_json(obj: Any) -> Any:
     if meta_self_link is not None:
         dst['@iot.selfLink'] = meta_self_link
 
-    # Normalize time objects for known time fields
-    for tk in ('phenomenonTime', 'resultTime', 'validTime'):
+    # Normalize time objects for known time fields (handles either casing)
+    for tk in ('phenomenonTime', 'resultTime', 'validTime', 'PhenomenonTime', 'ResultTime', 'ValidTime'):
         if tk in dst:
             dst[tk] = _flatten_time_value(dst[tk])
 
+    # Finally convert property keys from lowerCamel to PascalCase to match generated datamodel __setstate__
+    dst = _convert_props_to_pascal(dst)
     return dst
 
 def transform_json_to_entity(json_response, entity_class):
@@ -169,13 +247,11 @@ def parse_datetime(value) -> str:
             try:
                 times = value.split('/')
                 if len(times) != 2:
-                    raise ValueError("If the time interval is provided as a string,"
-                                     " it should be in isoformat")
+                    raise ValueError("If the time interval is provided as a string, it should be in isoformat")
                 result = [isoparse(times[0]),
                           isoparse(times[1])]
             except ValueError:
-                raise ValueError("If the time entity interval is provided as a string,"
-                                 " it should be in isoformat")
+                raise ValueError("If the time entity interval is provided as a string, it should be in isoformat")
             result = result[0].isoformat() + '/' + result[1].isoformat()
             return result
         else:
@@ -213,13 +289,7 @@ def parse_date(value) -> str:
     raise ValueError("date entities should be datetime.date or ISO-8601 date string")
 
 def parse_time(value) -> str:
-    """Return ISO-8601 time string from datetime.time or string input.
-
-    Accepts:
-    - datetime.time -> returns .isoformat()
-    - ISO time string (HH:MM[:SS[.ffffff]]) -> validated and normalized
-    - None -> None
-    """
+    """Return ISO-8601 time string from datetime.time or string input."""
     if value is None:
         return value
     if isinstance(value, str):
@@ -325,17 +395,7 @@ def parse_duration(value) -> str:
     raise ValueError("duration entities should be timedelta or ISO-8601 duration string")
 
 def parse_geometry(value: Any, expected_kind: str = None) -> Dict[str, Any]:
-    """Parse a GeoJSON-like geometry into a canonical dict.
-
-    Accepted inputs:
-    - dict with 'type' and 'coordinates' (or 'geometries' for GeometryCollection)
-    - JSON string of such a dict
-    - Any object exposing __geo_interface__
-
-    expected_kind (optional): enforce a specific geometry type, e.g. 'Point',
-    'LineString', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon',
-    'GeometryCollection'.
-    """
+    """Parse a GeoJSON-like geometry into a canonical dict."""
     if value is None:
         return None
 

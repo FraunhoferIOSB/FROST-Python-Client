@@ -15,9 +15,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from enum import Enum
 
-import frost_sta_client
 import datetime
 
+from frost_sta_client.model.observation import Observation
 
 class DataArrayValue:
 
@@ -95,7 +95,7 @@ class DataArrayValue:
             return components
 
 
-        def from_observation(self, o: frost_sta_client.Observation):
+        def from_observation(self, o: 'Observation'):
             value = []
             if self.id:
                 value.append(o.id)
@@ -169,4 +169,3 @@ class DataArrayValue:
                 "components": self.components,
                 "dataArray": self.data_array}
         return data
-
