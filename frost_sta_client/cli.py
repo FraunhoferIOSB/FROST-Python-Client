@@ -7,7 +7,7 @@ from .odata_codegen.generator import generate_from_url
 def main(argv: Optional[list] = None) -> int:
     parser = argparse.ArgumentParser(prog="frost-codegen", description="FROST-STA OData code generator")
     parser.add_argument("--url", "-u", required=True, help="OData endpoint of FROST-Server (e.g., http://host:8080/FROST-Server/ODATA_4.01)")
-    parser.add_argument("--output-dir", "-o", default="frost_sta_client/generated/odata", help="Output directory for generated code")
+    parser.add_argument("--output-dir", "-o", "--out", dest="output_dir", default="frost_sta_client/generated/odata", help="Output directory for generated code")
     parser.add_argument("--module", "-m", default="datamodel", help="Module name for the generated file (default: datamodel)")
     parser.add_argument("--username", help="Basic auth username", default=None)
     parser.add_argument("--password", help="Basic auth password", default=None)
