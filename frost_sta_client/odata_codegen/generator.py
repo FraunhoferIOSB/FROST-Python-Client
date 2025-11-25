@@ -1237,12 +1237,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
     lines.append("")
 
     # __all__
-    # __all__ - export only classes/complex types plus helper mapping
+    exported.extend(list(model.get("entity_sets", {}).keys()))
     lines.append("__all__ = [")
-    for name in sorted(set(exported + ["ENTITY_SETS"])):
+    for name in sorted(set(exported)):
         lines.append(f"    '{name}',")
     lines.append("]")
-    lines.append("")
     lines.append("")
 
     # Also write a package __init__.py so that `import <output-dir> as model` works as in README.
@@ -1262,10 +1261,29 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
 
 def generate_from_url(base_url: str, out_dir: str, module_name: str = "datamodel", auth: Any = None) -> str:
     """Detect an OData endpoint and generate models accordingly.
+
+    Fallback: If no OData endpoint is available, use project's metadata.xml.
     """
     from .runtime import find_odata_endpoint, fetch_metadata
     info = find_odata_endpoint(base_url, auth=auth)
     if info is None:
-        raise RuntimeError("Invalid OData endpoint. No code generated.")
+        meta_path_candidates = [
+            os.path.join(os.getcwd(), "frost_sta_client/metadata.xml"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frost_sta_client/metadata.xml"),
+        ]
+        xml_text = None
+        source = None
+        for p in meta_path_candidates:
+            try:
+                if os.path.exists(p):
+                    with open(p, "r", encoding="utf-8") as fh:
+                        xml_text = fh.read()
+                        source = p
+                        break
+            except Exception:
+                pass
+        if not xml_text:
+            raise RuntimeError("No OData endpoint detected and metadata.xml not found. No code generated.")
+        return generate_from_metadata(xml_text, out_dir, module_name, source_url=source or "", odata_version="4.01")
     xml = fetch_metadata(info["metadata_url"], auth=auth)
     return generate_from_metadata(xml, out_dir, module_name, source_url=info["metadata_url"], odata_version=info["version"])
