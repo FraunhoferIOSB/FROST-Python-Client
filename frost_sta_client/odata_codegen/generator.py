@@ -1237,11 +1237,12 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
     lines.append("")
 
     # __all__
-    exported.extend(list(model.get("entity_sets", {}).keys()))
+    # __all__ - export only classes/complex types plus helper mapping
     lines.append("__all__ = [")
-    for name in sorted(set(exported)):
+    for name in sorted(set(exported + ["ENTITY_SETS"])):
         lines.append(f"    '{name}',")
     lines.append("]")
+    lines.append("")
     lines.append("")
 
     # Also write a package __init__.py so that `import <output-dir> as model` works as in README.
