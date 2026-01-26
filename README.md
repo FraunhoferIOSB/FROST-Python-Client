@@ -138,11 +138,11 @@ Since version 2.0.0 this client supports general OData models hosted by FROST se
 
 For this purpose the client provides a command line interface for generating a service module containing the URL of the FROST server in use as well as source code for the Python classes corresponding to the data model contained in the server. It is called like this:
 ```bash
-frost-codegen --url http://localhost:8080/FROST-Server/ODATA_4.01 --output-dir my_service_module
+frost-codegen --url http://localhost:8080/FROST-Server/ODATA_4.01 --output-dir my_data_model
 ```
 or
 ```bash
-frost-codegen --url http://localhost:8080/FROST-Server/ODATA_4.0 --output-dir my_service_module
+frost-codegen --url http://localhost:8080/FROST-Server/ODATA_4.0 --output-dir my_data_model
 ```
 making use of the OData 4.01 or OData 4.0 endpoint of the FROST server, respectively.
 
@@ -168,7 +168,7 @@ service.create(thing)
 Variant II:
 ```
 import frost_sta_client as fsc
-import my_model as model
+import my_data_model as model
 from geojson import Point
 
 odata_url = "http://localhost:8080/FROST-Server/ODATA_4.01"
