@@ -99,6 +99,10 @@ class BaseDao:
     def create(self, entity):
         url = furl(self.service.url)
         url.path.add(self.entitytype_plural)
+        # Special handling: DataArrayDocument for Observations -> POST to CreateObservations
+        is_data_array = (self.entitytype_plural == 'Observations' and hasattr(entity, 'get_observations'))
+        if is_data_array:
+            url.path.add('CreateObservations')
         logging.debug('Posting to ' + str(url.url))
         json_dict = frost_sta_client.utils.transform_entity_to_json_dict(entity)
         try:
@@ -108,6 +112,31 @@ class BaseDao:
         entity.id = frost_sta_client.utils.extract_value(response.headers['location'])
         entity.service = self.service
         logging.debug('Received response: ' + str(response.status_code))
+        if is_data_array:
+            # Response is expected to be a JSON array of links
+            try:
+                links = json.loads(getattr(response, 'text', '[]'))
+            except Exception:
+                links = []
+            result_list = []
+            try:
+                cl = frost_sta_client.utils.class_from_string(self.entity_class)
+            except Exception:
+                cl = None
+            for href in links if isinstance(links, list) else []:
+                try:
+                    obj = cl() if cl is not None else None
+                except Exception:
+                    obj = None
+                if obj is not None:
+                    try:
+                        obj.self_link = href
+                        obj.id = frost_sta_client.utils.extract_value(href)
+                        obj.service = self.service
+                        result_list.append(obj)
+                    except Exception:
+                        pass
+            return result_list
 
     def patch(self, entity, patches):
         """

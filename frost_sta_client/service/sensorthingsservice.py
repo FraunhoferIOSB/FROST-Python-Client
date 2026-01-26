@@ -20,7 +20,7 @@ import logging
 import importlib
 import sys
 
-from frost_sta_client.dao import *
+from frost_sta_client.dao.base import BaseDao
 from frost_sta_client.service import auth_handler
 from frost_sta_client.model.ext import entity_type
 
@@ -163,38 +163,24 @@ class SensorThingsService:
             gen.delete(entity)
             return
         raise ValueError('No DAO found for entity and it is not a generated OData class')
-    def actuators(self):
-        return actuator.ActuatorDao(self)
-
-    def datastreams(self):
-        return datastream.DatastreamDao(self)
-
-    def features_of_interest(self):
-        return features_of_interest.FeaturesOfInterestDao(self)
-
-    def historical_locations(self):
-        return historical_location.HistoricalLocationDao(self)
-
-    def locations(self):
-        return location.LocationDao(self)
-
-    def multi_datastreams(self):
-        return multi_datastream.MultiDatastreamDao(self)
-
-    def observations(self):
-        return observation.ObservationDao(self)
-
-    def observed_properties(self):
-        return observedproperty.ObservedPropertyDao(self)
-
-    def sensors(self):
-        return sensor.SensorDao(self)
-
-    def tasks(self):
-        return task.TaskDao(self)
-
-    def tasking_capabilities(self):
-        return tasking_capability.TaskingCapabilityDao(self)
-
-    def things(self):
-        return thing.ThingDao(self)
+    def __getattr__(self, name):
+        """Dynamic DAO factory methods for entity collections.
+        
+        Example: service.things(), service.datastreams(), service.features_of_interest(), ...
+        """
+        # lazy import to avoid circular imports
+        from frost_sta_client.model.ext.entity_type import EntityTypes
+        import re
+        
+        def _to_snake(s: str) -> str:
+            s1 = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', s)
+            return re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+        
+        for singular, meta in EntityTypes.items():
+            plural = meta.get('plural')
+            if not plural:
+                continue
+            meth = _to_snake(plural)
+            if name == meth:
+                return lambda: BaseDao(self, meta)
+        raise AttributeError(name)
