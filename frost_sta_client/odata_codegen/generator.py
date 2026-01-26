@@ -685,6 +685,7 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             arg_parts.append(f"{sn}: {ann} = None")
         arg_parts.append("**kwargs")
         arg_sig = ",\n\t\t\t\t ".join(arg_parts)
+        lines.append(f"class {e_name}:")
         lines.append(f"    def __init__({arg_sig}):")
         lines.append("        super().__init__(**kwargs)")
         for p in props:
@@ -711,7 +712,7 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         lines.append("                return dao")
         lines.append("        raise ValueError('No DAO available for this entity')")
         lines.append("")
-            lines.append(f"        self.{sn} = {sn}")
+        lines.append(f"        self.{sn} = {sn}")
         lines.append("")
         # DAO accessor (BaseDao) for backward compatibility with service.create/update/patch/delete
         lines.append("    def get_dao(self, service):")
