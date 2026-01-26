@@ -684,7 +684,8 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                 ann = f"Optional[{related}]" if nullable_nav else f"{related}"
             arg_parts.append(f"{sn}: {ann} = None")
         arg_parts.append("**kwargs")
-        arg_sig = ",\n\t\t\t\t ".join(arg_parts)
+        # arg_sig = ",\n\t\t\t\t ".join(arg_parts)
+        arg_sig = ",\n\t\t ".join(arg_parts)
         lines.append(f"class {e_name}:")
         lines.append(f"    def __init__({arg_sig}):")
         lines.append("        super().__init__(**kwargs)")
