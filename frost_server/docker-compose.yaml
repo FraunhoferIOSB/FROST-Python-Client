@@ -4,7 +4,8 @@ services:
     environment:
       # For all settings see: https://fraunhoferiosb.github.io/FROST-Server/settings/settings.html
       - serviceRootUrl=http://localhost:8080/FROST-Server
-      - plugins_multiDatastream.enable=false
+      - plugins_multiDatastream.enable=true
+      - plugins_actuation.enable=true
       - plugins_odata.enable=true
       - http_cors_enable=true
       - http_cors_allowed_origins=*
