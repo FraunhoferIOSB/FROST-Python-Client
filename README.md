@@ -136,7 +136,7 @@ module is set to demjson3 per default. The backend can be modified by calling
 
 Since version 2.0.0 this client can be used with more general data models than SensorThings hosted by FROST servers with active OData plugin. Up to now only a subset of OData is supported.
 
-For this purpose the client provides a command line interface for generating a service module containing the URL of the FROST server in use as well as source code for the Python classes corresponding to the data model contained in the server. It is called like this:
+For this purpose the client provides a command line interface for generating a Python module implementing the data model contained in the server in use. It is called like this:
 ```bash
 frost-codegen --url http://localhost:8080/FROST-Server/ODATA_4.01 --output-dir my_data_model
 ```
