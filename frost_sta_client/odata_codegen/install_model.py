@@ -183,6 +183,7 @@ def write_wrapper(model_dir: str, singular: str, relations: List[str]) -> None:
     The compatibility import modules under frost_sta_client/model are provided statically.
     """
     return
+    
 def write_model_init(model_dir: str, entities: List[str]) -> None:
     """Write a minimal __init__ for frost_sta_client.model to avoid circular imports."""
     path = os.path.join(model_dir, '__init__.py')
