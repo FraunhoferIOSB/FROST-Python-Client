@@ -30,7 +30,7 @@ jobs:
         pip install build
         echo "github.ref:"
         echo "$GITHUB_REF"
-        pip install .
+        # pip install .
     - name: Generate SensorThings model (OData)
       run: |
         python -m frost_sta_client.odata_codegen.install_model_simple
