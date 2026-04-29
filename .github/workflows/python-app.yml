@@ -31,7 +31,7 @@ jobs:
         docker compose version
         python3 -m pip install --upgrade pip
         pip install flake8 pytest
-        pip install -e .
+        pip install .
 
     - name: Lint with flake8
       run: |
