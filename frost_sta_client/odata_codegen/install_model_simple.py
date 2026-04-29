@@ -1,25 +1,7 @@
 from typing import List, Optional
 from frost_sta_client.odata_codegen.generator import generate_from_url
 
-def write_part_of_init(path):
-    str = """from frost_sta_client import model
-from frost_sta_client import dao
-from frost_sta_client import query
-from frost_sta_client import service
-
-import jsonpickle
-
-jsonpickle.load_backend('demjson3', 'encode', 'decode', 'JSONDecodeError')
-jsonpickle.set_preferred_backend('demjson3')
-jsonpickle.set_decoder_options("demjson3", decode_float=float)
-
-from .__version__ import (__title__, __version__, __license__, __author__, __contact__, __url__,
-                          __description__, __copyright__)
-"""
-    with open(path, 'w', encoding='utf-8') as file:
-        file.write(str)
-
-def write_full_init(path):
+def write_init(path):
     str = """from frost_sta_client import model
 from frost_sta_client import dao
 from frost_sta_client import query
@@ -64,9 +46,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     output_dir="frost_sta_client/generated/odata"
     module="datamodel"
     auth=None
-    write_part_of_init(init_path)
     generate_from_url(url, output_dir, module, auth=auth)
-    write_full_init(init_path)
+    write_init(init_path)
     return 0
 
 if __name__ == '__main__':
