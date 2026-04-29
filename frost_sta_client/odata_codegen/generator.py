@@ -1371,15 +1371,11 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
     lines.append("")
     lines.append("")
 
+    os.makedirs(out_dir, exist_ok=True)
     # Also write a package __init__.py so that `import <output-dir> as model` works as in README.
     init_path = os.path.join(out_dir, "__init__.py")
-    try:
-        with open(init_path, "w", encoding="utf-8") as fh:
-            fh.write(f"from .{module_name} import *\n")
-    except Exception:
-        # Non-fatal: importing via <out_dir>.<module_name> will still work
-        pass
-    os.makedirs(out_dir, exist_ok=True)
+    with open(init_path, "w", encoding="utf-8") as fh:
+        fh.write(f"from .{module_name} import *\n")
     out_path = os.path.join(out_dir, f"{module_name}.py")
     with open(out_path, "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines) + "\n")
