@@ -1,0 +1,68 @@
+from frost_sta_client.odata_codegen.generator import generate_from_url
+
+def write_part_of_init(path):
+    str = """from frost_sta_client import model
+from frost_sta_client import dao
+from frost_sta_client import query
+from frost_sta_client import service
+
+import jsonpickle
+
+jsonpickle.load_backend('demjson3', 'encode', 'decode', 'JSONDecodeError')
+jsonpickle.set_preferred_backend('demjson3')
+jsonpickle.set_decoder_options("demjson3", decode_float=float)
+
+from .__version__ import (__title__, __version__, __license__, __author__, __contact__, __url__,
+                          __description__, __copyright__)
+"""
+    with open(path, 'w', encoding='utf-8') as file:
+        file.write(str)
+
+def write_full_init(path):
+    str = """from frost_sta_client import model
+from frost_sta_client import dao
+from frost_sta_client import query
+from frost_sta_client import service
+
+from frost_sta_client.model.actuator import Actuator
+from frost_sta_client.model.datastream import Datastream
+from frost_sta_client.model.entity import Entity
+from frost_sta_client.model.feature_of_interest import FeatureOfInterest
+from frost_sta_client.model.historical_location import HistoricalLocation
+from frost_sta_client.model.location import Location
+from frost_sta_client.model.multi_datastream import MultiDatastream
+from frost_sta_client.model.observation import Observation
+from frost_sta_client.model.observedproperty import ObservedProperty
+from frost_sta_client.model.sensor import Sensor
+from frost_sta_client.model.task import Task
+from frost_sta_client.model.tasking_capability import TaskingCapability
+from frost_sta_client.model.thing import Thing
+from frost_sta_client.model.ext.unitofmeasurement import UnitOfMeasurement
+from frost_sta_client.service.sensorthingsservice import SensorThingsService
+from frost_sta_client.service.auth_handler import AuthHandler
+from frost_sta_client.model.ext.entity_type import EntityTypes
+from frost_sta_client.model.ext.entity_list import EntityList
+from frost_sta_client.model.ext.data_array_value import DataArrayValue
+from frost_sta_client.model.ext.data_array_document import DataArrayDocument
+
+import jsonpickle
+
+jsonpickle.load_backend('demjson3', 'encode', 'decode', 'JSONDecodeError')
+jsonpickle.set_preferred_backend('demjson3')
+jsonpickle.set_decoder_options("demjson3", decode_float=float)
+
+from .__version__ import (__title__, __version__, __license__, __author__, __contact__, __url__,
+                          __description__, __copyright__)
+"""
+    with open(path, 'w', encoding='utf-8') as file:
+        file.write(str)
+
+def main(argv: Optional[List[str]] = None) -> int:
+    init_path="frost_sta_client/__init__.py"
+    write_part_of_init(init_path)
+    generate_from_url(args.url, args.out, args.module, auth=auth)
+    write_full_init(init_path)
+    return 0
+
+if __name__ == '__main__':
+    raise SystemExit(main())
