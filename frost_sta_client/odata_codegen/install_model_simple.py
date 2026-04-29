@@ -1,3 +1,4 @@
+from typing import List, Optional
 from frost_sta_client.odata_codegen.generator import generate_from_url
 
 def write_part_of_init(path):
