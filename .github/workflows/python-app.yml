@@ -54,7 +54,7 @@ jobs:
     - name: Generate SensorThings model (OData)
       run: |
         # python -m frost_sta_client.odata_codegen.install_model --url http://localhost:8080/FROST-Server --username admin --password admin
-        python -m frost_sta_client.odata_codegen.install_model --url ""
+        python -m frost_sta_client.odata_codegen.install_model_simple
 
     - name: Test with pytest
       run: |
