@@ -30,9 +30,20 @@ jobs:
         pip install build
         echo "github.ref:"
         echo "$GITHUB_REF"
-      run: python -m build
-    - name: Publish package
-      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+        pip install -e .
+    - name: Generate SensorThings model (OData)
+      run: |
+        python -m frost_sta_client.odata_codegen.install_model_simple
+    - name: Upload generated model as artifact
+      uses: actions/upload-artifact@v4
       with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+        name: generated-model
+        path: |
+          ./**
+    - name: Build package
+      run: python -m build
+    # - name: Publish package
+    #   uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+    #   with:
+    #     user: __token__
+    #     password: ${{ secrets.PYPI_API_TOKEN }}
