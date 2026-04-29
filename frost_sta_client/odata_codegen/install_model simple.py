@@ -59,8 +59,12 @@ from .__version__ import (__title__, __version__, __license__, __author__, __con
 
 def main(argv: Optional[List[str]] = None) -> int:
     init_path="frost_sta_client/__init__.py"
+    url=""
+    output_dir="frost_sta_client/generated/odata"
+    module="datamodel"
+    auth=None
     write_part_of_init(init_path)
-    generate_from_url(args.url, args.out, args.module, auth=auth)
+    generate_from_url(url, output_dir, module, auth=auth)
     write_full_init(init_path)
     return 0
 
