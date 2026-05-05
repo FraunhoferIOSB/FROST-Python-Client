@@ -669,7 +669,7 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
         props = et.get("properties", [])
         navs = et.get("navigation_properties", [])
 
-        arg_parts: List[str] = ["self"]
+        arg_parts: List[dict] = []
         for p in props:
             on = p['name']
             sn = snake(on)
@@ -679,9 +679,13 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             nullable = p.get('nullable', True)
             ann, _base_check, _is_coll = _to_py_hint(on, p['type'], model, nullable)
             if nullable:
-                arg_parts.append(f"{snake(p['name'])}: {ann} = None")
+                string_part = f"{snake(p['name'])}: {ann} = None"
             else:
-                arg_parts.append(f"{snake(p['name'])}: {ann}")
+                string_part = f"{snake(p['name'])}: {ann}"
+            arg_parts.append({
+                "str": string_part,
+                "nl": nullable
+            })
         for np in navs:
             related = _last_segment(np['type'])
             sn = snake(np['name'])
@@ -691,12 +695,19 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             else:
                 ann = f"Optional[{related}]" if nullable_nav else f"{related}"
             if nullable_nav:
-                arg_parts.append(f"{sn}: {ann} = None")
+                string_part_nav = f"{sn}: {ann} = None"
             else:
-                arg_parts.append(f"{sn}: {ann}")
-        arg_parts.append("**kwargs")
-        # arg_sig = ",\n\t\t\t\t ".join(arg_parts)
-        arg_sig = ",\n\t\t ".join(arg_parts)
+                string_part_nav = f"{sn}: {ann}"
+            arg_parts.append({
+                "str": string_part_nav,
+                "nl": nullable_nav
+            })
+        arg_parts.sort(key=lambda d: d["nl"])
+        arg_string_parts: List[str] = [d["str"] for d in arg_parts]
+        arg_string_parts.insert(0, "self")
+        arg_string_parts.append("**kwargs")
+        # arg_sig = ",\n\t\t\t\t ".join(arg_string_parts)
+        arg_sig = ",\n\t\t ".join(arg_string_parts)
         lines.append(f"class {e_name}:")
         lines.append(f"    def __init__({arg_sig}):")
         lines.append("        super().__init__(**kwargs)")
