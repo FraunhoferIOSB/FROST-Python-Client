@@ -685,7 +685,10 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
                 ann = f"Optional[Union[EntityList[{related}], List[{related}]]]" if nullable_nav else f"Union[EntityList[{related}], List[{related}]]"
             else:
                 ann = f"Optional[{related}]" if nullable_nav else f"{related}"
-            arg_parts.append(f"{sn}: {ann} = None")
+            if nullable_nav:
+                arg_parts.append(f"{sn}: {ann} = None")
+            else:
+                arg_parts.append(f"{sn}: {ann}")
         arg_parts.append("**kwargs")
         # arg_sig = ",\n\t\t\t\t ".join(arg_parts)
         arg_sig = ",\n\t\t ".join(arg_parts)
