@@ -216,10 +216,15 @@ def generate_from_metadata(xml_text: str, out_dir: str, module_name: str = "data
             nullable = p.get('nullable', True)
             ann, _base_check, _is_coll = _to_py_hint(p['name'], p['type'], model, nullable)
             if nullable:
-                arg_parts.append(f"{snake(p['name'])}: {ann} = None")
+                string_part = f"{snake(p['name'])}: {ann} = None"
             else:
-                arg_parts.append(f"{snake(p['name'])}: {ann}")
-        args = ", ".join(arg_parts)
+                string_part = f"{snake(p['name'])}: {ann}"
+            arg_parts.append({
+                "str": string_part,
+                "nl": nullable
+            })
+        arg_parts.sort(key=lambda d: d["nl"])
+        args = ", ".join([d["str"] for d in arg_parts])
         lines.append(f"class {c_name}:")
         lines.append(f"    def __init__(self, {args}):" if args else "    def __init__(self):")
         if not props:
