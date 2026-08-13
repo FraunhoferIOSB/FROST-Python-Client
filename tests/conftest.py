@@ -56,7 +56,7 @@ def sensorthings_service(frost_server):
 def _external_ip():
     """The host's own LAN IP. Keycloak and FROST are addressed through it so the token
     issuer is the same whether the token is minted here on the host or validated inside
-    the FROST container. See tests/keycloak/docker-compose.yaml."""
+    the FROST container. See frost_server/docker-compose.keycloak.yml."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(('8.8.8.8', 80))
@@ -98,7 +98,7 @@ def frost_keycloak_server():
         return
     ip = _external_ip()
     env = {**os.environ, 'EXTERNAL_IP': ip}
-    compose = ['podman', 'compose', '-f', 'tests/keycloak/docker-compose.yaml']
+    compose = ['podman', 'compose', '-f', 'frost_server/docker-compose.keycloak.yml']
     subprocess.run(compose + ['up', '-d'], env=env)
     # Wait for Keycloak to have imported the realm and to mint a token
     for _ in range(60):

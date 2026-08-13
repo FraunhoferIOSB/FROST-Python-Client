@@ -5,7 +5,7 @@
 # means the token issuer is identical everywhere: the token the test mints is one the FROST
 # server can both validate and reach for the realm keys. This mirrors the adapter's compose
 # setup. The conftest fixture fills EXTERNAL_IP in with the host's IP before starting the
-# stack. Port 8090 keeps FROST clear of the basic-auth stack in ../../frost_server (:8080).
+# stack. Port 8090 keeps FROST clear of the basic-auth stack in ./docker-compose.yaml (:8080).
 services:
   web:
     image: fraunhoferiosb/frost-server:2.7.3
