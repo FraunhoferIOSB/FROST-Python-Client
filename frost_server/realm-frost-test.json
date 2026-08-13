@@ -1,0 +1,53 @@
+{
+  "realm": "frost-test",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 300,
+  "roles": {
+    "client": {
+      "frost-server": [
+        { "name": "read" },
+        { "name": "create" },
+        { "name": "update" },
+        { "name": "delete" }
+      ]
+    }
+  },
+  "clients": [
+    {
+      "clientId": "frost-server",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": ["*"],
+      "webOrigins": ["*"]
+    }
+  ],
+  "users": [
+    {
+      "username": "read",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "read@example.org",
+      "firstName": "Read",
+      "lastName": "User",
+      "requiredActions": [],
+      "credentials": [{ "type": "password", "value": "read", "temporary": false }],
+      "clientRoles": { "frost-server": ["read"] }
+    },
+    {
+      "username": "write",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "write@example.org",
+      "firstName": "Write",
+      "lastName": "User",
+      "requiredActions": [],
+      "credentials": [{ "type": "password", "value": "write", "temporary": false }],
+      "clientRoles": { "frost-server": ["read", "create", "update", "delete"] }
+    }
+  ]
+}

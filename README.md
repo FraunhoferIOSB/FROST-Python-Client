@@ -6,6 +6,7 @@ The **FR**aunhofer **O**pensource **S**ensor**T**hings API Python Client is a py
 * CRUD operations
 * Queries on entity lists
 * MultiDatastreams
+* Basic auth and Keycloak auth
 
 ## API
 
@@ -22,6 +23,23 @@ url = "exampleserver.com/FROST-Server/v1.1"
 auth_handler = fsc.AuthHandler(username="admin", password="admin") # if server is configured for basic auth, else None
 service = fsc.SensorThingsService(url, auth_handler=auth_handler)
 ```
+### Authentication
+
+For a server configured for basic auth, `AuthHandler` is used as shown above. For a server that
+delegates authentication to Keycloak, `KeycloakAuthHandler` obtains an access token from the
+Keycloak server via the password grant and sends it as a bearer token. The token is cached and
+reused until shortly before it expires, so a long running client does not request a new token
+per request.
+
+```python
+auth_handler = fsc.KeycloakAuthHandler(server_url="https://keycloak.example.com",
+                                       realm_name="my-realm",
+                                       client_id="frost-client",
+                                       username="user",
+                                       password="pass")
+service = fsc.SensorThingsService(url, auth_handler=auth_handler)
+```
+
 #### Creating Entities
 ```python
 from geojson import Point

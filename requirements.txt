@@ -5,3 +5,4 @@ furl
 geojson
 jsonpatch
 python-dateutil
+python-keycloak

@@ -1,0 +1,75 @@
+# A FROST-Server protected by a Keycloak, for the integration test of KeycloakAuthHandler.
+#
+# Keycloak and FROST are addressed through the host's own IP (EXTERNAL_IP), published on
+# :8180 and :8090. Using one address for both the test (on the host) and the FROST container
+# means the token issuer is identical everywhere: the token the test mints is one the FROST
+# server can both validate and reach for the realm keys. This mirrors the adapter's compose
+# setup. The conftest fixture fills EXTERNAL_IP in with the host's IP before starting the
+# stack. Port 8090 keeps FROST clear of the basic-auth stack in ./docker-compose.yaml (:8080).
+services:
+  web:
+    image: fraunhoferiosb/frost-server:2.7.3
+    environment:
+      # For all settings see: https://fraunhoferiosb.github.io/FROST-Server/settings/settings.html
+      - serviceRootUrl=http://${EXTERNAL_IP}:8090/FROST-Server
+      - plugins_multiDatastream.enable=false
+      - http_cors_enable=true
+      - http_cors_allowed_origins=*
+      - persistence_db_driver=org.postgresql.Driver
+      - persistence_db_url=jdbc:postgresql://database:5432/sensorthings
+      - persistence_db_username=sensorthings
+      - persistence_db_password=ChangeMe
+      - persistence_autoUpdateDatabase=true
+      # Authenticate against Keycloak; require a token even for reads so the test's token
+      # actually has to be valid. The config is passed inline rather than downloaded, so the
+      # stack needs no client-registration token.
+      - auth_provider=de.fraunhofer.iosb.ilt.frostserver.auth.keycloak.KeycloakAuthProvider
+      - auth_allowAnonymousRead=false
+      # use-resource-role-mappings makes the adapter read the FROST client roles
+      # (resource_access.frost-server.roles) rather than realm roles.
+      - >-
+        auth_keycloakConfig={"realm":"frost-test",
+        "auth-server-url":"http://${EXTERNAL_IP}:8180/","ssl-required":"none",
+        "resource":"frost-server","public-client":true,"confidential-port":0,
+        "use-resource-role-mappings":true}
+    ports:
+      - 8090:8080
+    depends_on:
+      database:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+  database:
+    image: postgis/postgis:16-3.4-alpine
+    environment:
+      - POSTGRES_DB=sensorthings
+      - POSTGRES_USER=sensorthings
+      - POSTGRES_PASSWORD=ChangeMe
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d sensorthings -U sensorthings "]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5
+    command: start-dev --import-realm
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin
+      # Fix the token issuer to the host address, so the token minted by the test and the
+      # token seen by the FROST server carry the same issuer.
+      - KC_HOSTNAME=http://${EXTERNAL_IP}:8180
+      - KC_HOSTNAME_STRICT=false
+      - KC_HEALTH_ENABLED=true
+    ports:
+      - 8180:8080
+    volumes:
+      - ./realm-frost-test.json:/opt/keycloak/data/import/realm-frost-test.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "{ printf 'HEAD /health/ready HTTP/1.0\r\n\r\n' >&0; grep 'HTTP/1.0 200'; } 0<>/dev/tcp/localhost/9000"]
+      start_period: 30s
+      interval: 5s
+      timeout: 5s
+      retries: 20
