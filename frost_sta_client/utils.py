@@ -100,8 +100,8 @@ def parse_datetime(value) -> str:
             return result
     if isinstance(value, datetime.datetime):
         return value.isoformat()
-    if isinstance(value, list) and all(isinstance(v, datetime.datetime) for v in value):
-        return value[0].isoformat() + value[1].isoformat()
+    if isinstance(value, list) and len(value) == 2 and all(isinstance(v, datetime.datetime) for v in value):
+        return value[0].isoformat() + '/' + value[1].isoformat()
     else:
         raise ValueError('time entities should consist of one or two datetimes')
 
