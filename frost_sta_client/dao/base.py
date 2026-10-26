@@ -21,6 +21,7 @@ import logging
 import requests
 import jsonpatch
 import json
+from urllib.parse import urljoin
 from furl import furl
 
 
@@ -105,7 +106,9 @@ class BaseDao:
             response = self.service.execute('post', url, json=json_dict)
         except requests.exceptions.HTTPError as e:
             frost_sta_client.utils.handle_server_error(e, 'Creating {}'.format(type(entity).__name__))
-        entity.id = frost_sta_client.utils.extract_value(response.headers['location'])
+        location = response.headers['location']
+        entity.id = frost_sta_client.utils.extract_value(location)
+        entity.self_link = urljoin(getattr(response, 'url', None) or str(url), location)
         entity.service = self.service
         logging.debug('Received response: ' + str(response.status_code))
 

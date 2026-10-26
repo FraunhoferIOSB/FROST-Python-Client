@@ -1,7 +1,10 @@
+from unittest.mock import Mock
+
 import pytest
 import requests
 from frost_sta_client.service.sensorthingsservice import SensorThingsService
 from frost_sta_client.model.thing import Thing
+from frost_sta_client.utils import transform_entity_to_json_dict
 
 
 class MockResponse:
@@ -38,6 +41,39 @@ def test_base_dao_create_sets_id_and_service():
     svc.create(t)
     assert t.id == 42
     assert t.service is svc
+
+
+@pytest.mark.parametrize(
+    'location, response_url, expected_link, expected_id',
+    [
+        ('https://example.org/v1.1/Things(42)', None,
+         'https://example.org/v1.1/Things(42)', 42),
+        ('/FROST-Server/v1.1/Things(42)', None,
+         'http://example.org/FROST-Server/v1.1/Things(42)', 42),
+        ('Things(42)', None,
+         'http://example.org/FROST-Server/v1.1/Things(42)', 42),
+        ("Things('sensor-42')", None,
+         "http://example.org/FROST-Server/v1.1/Things('sensor-42')", 'sensor-42'),
+        ('Things(42)', 'https://example.org/redirected/v1.1/Things',
+         'https://example.org/redirected/v1.1/Things(42)', 42),
+    ],
+)
+def test_created_entity_self_link(monkeypatch, location, response_url, expected_link, expected_id):
+    svc = DummyService()
+    response = MockResponse(201, headers={'location': location})
+    response.url = response_url
+    execute = Mock(return_value=response)
+    monkeypatch.setattr(svc, 'execute', execute)
+    entity = Thing(name='X')
+
+    svc.create(entity)
+
+    assert entity.id == expected_id
+    assert entity.service is svc
+    assert entity.self_link == expected_link
+    assert transform_entity_to_json_dict(entity) == {'@iot.id': expected_id, 'name': 'X'}
+    execute.assert_called_once()
+    assert execute.call_args.kwargs['json'] == {'name': 'X'}
 
 
 def test_base_dao_find_returns_entity():
