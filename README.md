@@ -131,3 +131,12 @@ An example usage looks as follows:
 Since not all possible backends that are configurable in jsonpickle handle long floats equally, the backend json
 module is set to demjson3 per default. The backend can be modified by calling
 `jsonpickle.set_preferred_backend('name_of_preferred_backend')` anywhere in the code that uses the client.
+
+### Observation time equality
+
+Observation equality compares time values rather than their textual encoding.
+For example, `2024-04-17T12:00:00Z`, `2024-04-17T12:00:00.000+00:00`,
+and `2024-04-17T14:00:00+02:00` represent the same instant. This applies to
+`phenomenon_time`, `result_time`, and `valid_time`, including interval endpoints.
+A timezone-naive value remains distinct from an aware value. Comparison does not
+change the original property values or their serialization.

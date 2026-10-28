@@ -17,6 +17,8 @@
 import json
 import datetime
 
+from dateutil.parser import isoparse
+
 import frost_sta_client.model
 from . import entity
 from . import multi_datastream
@@ -26,6 +28,17 @@ from . import feature_of_interest
 from frost_sta_client.dao.observation import ObservationDao
 
 from frost_sta_client import utils
+
+
+def _comparable_time(value):
+    """Normalize validated time encodings for equality without changing storage."""
+    if isinstance(value, str):
+        return tuple(isoparse(part) for part in value.split('/'))
+    if isinstance(value, datetime.datetime):
+        return (value,)
+    if isinstance(value, list):
+        return tuple(value)
+    return value
 
 
 class Observation(entity.Entity):
@@ -190,11 +203,11 @@ class Observation(entity.Entity):
             return False
         if self.result != other.result:
             return False
-        if self.phenomenon_time != other.phenomenon_time:
+        if _comparable_time(self.phenomenon_time) != _comparable_time(other.phenomenon_time):
             return False
-        if self.result_time != other.result_time:
+        if _comparable_time(self.result_time) != _comparable_time(other.result_time):
             return False
-        if self.valid_time != other.valid_time:
+        if _comparable_time(self.valid_time) != _comparable_time(other.valid_time):
             return False
         if self.parameters != other.parameters:
             return False
