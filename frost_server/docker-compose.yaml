@@ -1,10 +1,13 @@
 services:
   web:
-    image: docker.io/fraunhoferiosb/frost-server:latest
+    image: docker.io/fraunhoferiosb/frost-server:2.8.2
     environment:
       # For all settings see: https://fraunhoferiosb.github.io/FROST-Server/settings/settings.html
+      # FROST 2.8.2 defaults plugins.multiDatastream.enable to false.
+      # The check turns it on. It is never set to false.
       - serviceRootUrl=http://localhost:8080/FROST-Server
-      - plugins_multiDatastream.enable=false
+      - plugins_odata.enable=true
+      - plugins_multiDatastream.enable=true
       - http_cors_enable=true
       - http_cors_allowed_origins=*
       - persistence_db_driver=org.postgresql.Driver

@@ -1,34 +1,46 @@
-from frost_sta_client import model
-from frost_sta_client import dao
-from frost_sta_client import query
-from frost_sta_client import service
+"""Facade for the generated SensorThings model and the shared runtime.
 
-from frost_sta_client.model.actuator import Actuator
-from frost_sta_client.model.datastream import Datastream
-from frost_sta_client.model.entity import Entity
-from frost_sta_client.model.feature_of_interest import FeatureOfInterest
-from frost_sta_client.model.historical_location import HistoricalLocation
-from frost_sta_client.model.location import Location
-from frost_sta_client.model.multi_datastream import MultiDatastream
-from frost_sta_client.model.observation import Observation
-from frost_sta_client.model.observedproperty import ObservedProperty
-from frost_sta_client.model.sensor import Sensor
-from frost_sta_client.model.task import Task
-from frost_sta_client.model.tasking_capability import TaskingCapability
-from frost_sta_client.model.thing import Thing
-from frost_sta_client.model.ext.unitofmeasurement import UnitOfMeasurement
-from frost_sta_client.service.sensorthingsservice import SensorThingsService
+README names such as ``Thing``, ``SensorThingsService``, and ``observations``
+resolve when the loaded model contains those types and entity sets. Importing
+this package does not configure a JSON backend.
+"""
+
+import frost_sta_client.generated as generated
+import frost_sta_client.model as model
+from frost_sta_client.runtime.data_array import DataArrayDocument, DataArrayValue
+from frost_sta_client.runtime.entity import Entity
+from frost_sta_client.runtime.entity_list import EntityList
+from frost_sta_client.runtime.service import SensorThingsService
 from frost_sta_client.service.auth_handler import AuthHandler
-from frost_sta_client.model.ext.entity_type import EntityTypes
-from frost_sta_client.model.ext.entity_list import EntityList
-from frost_sta_client.model.ext.data_array_value import DataArrayValue
-from frost_sta_client.model.ext.data_array_document import DataArrayDocument
+from frost_sta_client.__version__ import (
+    __author__,
+    __contact__,
+    __copyright__,
+    __description__,
+    __license__,
+    __title__,
+    __url__,
+    __version__,
+)
 
-import jsonpickle
+for _name in generated.__all__:
+    globals()[_name] = getattr(generated, _name)
 
-jsonpickle.load_backend('demjson3', 'encode', 'decode', 'JSONDecodeError')
-jsonpickle.set_preferred_backend('demjson3')
-jsonpickle.set_decoder_options("demjson3", decode_float=float)
-
-from .__version__ import (__title__, __version__, __license__, __author__, __contact__, __url__,
-                          __description__, __copyright__)
+__all__ = [
+    "__author__",
+    "__contact__",
+    "__copyright__",
+    "__description__",
+    "__license__",
+    "__title__",
+    "__url__",
+    "__version__",
+    "model",
+    "AuthHandler",
+    "DataArrayDocument",
+    "DataArrayValue",
+    "Entity",
+    "EntityList",
+    "SensorThingsService",
+]
+__all__.extend(generated.__all__)

@@ -1,2 +1,5 @@
-from frost_sta_client.service import sensorthingsservice
-from frost_sta_client.service import auth_handler
+"""Service package.
+
+Kept free of imports so loading ``auth_handler`` does not pull the service
+class in while that class is still being defined.
+"""

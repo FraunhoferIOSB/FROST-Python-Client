@@ -20,7 +20,11 @@ setup(
     license=info['__license__'],
     url=info['__url__'],
     packages=find_packages(),
-    install_requires=['demjson3>=3.0.5', 'furl>=2.1.3', 'geojson>=2.5.0', 'jsonpickle>=2.0.0', 'requests>=2.26.0',
-                      'jsonpatch', 'python-dateutil'],
+    install_requires=['geojson>=2.5.0', 'requests>=2.26.0'],
+    package_data={
+        'frost_sta_client': ['metadata/*.xml'],
+        'frost_sta_client.generated': ['SOURCE.json'],
+    },
+    entry_points={'console_scripts': ['frost-client=frost_sta_client.generate:main']},
     keywords=['sta', 'ogc', 'frost', 'sensorthingsapi', 'IoT']
 )
