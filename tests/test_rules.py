@@ -48,7 +48,7 @@ class Response:
 
 
 class RecordingService(SensorThingsService):
-    def __init__(self, url, responses=None, metadata=None, control="@iot", extensions=(True, True)):
+    def __init__(self, url, responses=None, metadata=None, control="@iot", extensions=(False, True, False)):
         super().__init__(url, extensions=extensions, metadata=metadata, control=control)
         self.responses = list(responses or [])
         self.calls = []
@@ -103,7 +103,9 @@ def datastream(**kwargs):
 def test_facade_names_resolve():
     assert callable(service().things)
     assert callable(service().features_of_interest)
-    assert callable(service().multi_datastreams)
+    assert callable(service().create_observations)
+    assert getattr(service(), "multi_datastreams", None) is None
+    assert getattr(service(), "actuators", None) is None
     assert callable(service().historical_locations)
     assert fsc.model.ext.data_array_value.DataArrayValue is fsc.DataArrayValue
     assert fsc.model.ext.data_array_document.DataArrayDocument is fsc.DataArrayDocument
@@ -666,7 +668,7 @@ def test_data_array_facade():
     document = fsc.DataArrayDocument()
     with pytest.raises(TypeError, match="not an entity"):
         sta.create(document)
-    silent = service(extensions=(True, False))
+    silent = service(extensions=(False, False, False))
     with pytest.raises(RuntimeError, match="CreateObservations"):
         silent.invoke("CreateObservations", document.to_json(silent))
     ordered.datastream = None

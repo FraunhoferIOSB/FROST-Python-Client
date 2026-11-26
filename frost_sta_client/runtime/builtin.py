@@ -1,7 +1,9 @@
-"""The four built-in SensorThings models.
+"""The eight built-in SensorThings models.
 
 An empty model location uses one of these. ``extensions`` is
-``(multi_datastream, data_array)``. Both flags default to on.
+``(multi_datastream, data_array, actuation)``. The default is
+``(False, True, False)``, the FROST-Server 2.8.2 image default:
+MultiDatastream off, Data Array on, Actuation off.
 """
 
 from frost_sta_client.runtime.specs import OperationSpec
@@ -12,6 +14,9 @@ DATA_ARRAY_CONFORMANCE = (
 MULTIDATASTREAM_CONFORMANCE = (
     "http://www.opengis.net/spec/iot_sensing/1.1/req/multi-datastream"
 )
+ACTUATION_CONFORMANCE = (
+    "http://www.opengis.net/spec/iot_tasking/1.0/req/tasking-capability"
+)
 
 CREATE_OBSERVATIONS = OperationSpec(
     "CreateObservations",
@@ -20,13 +25,16 @@ CREATE_OBSERVATIONS = OperationSpec(
     return_type="Collection(Edm.String)",
 )
 
+_ACTUATION_SETS = ("actuators", "tasks", "tasking_capabilities")
+
 
 class BuiltInModel:
-    """One combination of MultiDatastream and Data Array over the shipped types."""
+    """One combination of MultiDatastream, Data Array, and Actuation."""
 
-    def __init__(self, multi_datastream, data_array):
+    def __init__(self, multi_datastream, data_array, actuation):
         self.multi_datastream = bool(multi_datastream)
         self.data_array = bool(data_array)
+        self.actuation = bool(actuation)
         self._base = _base_model()
 
     @property
@@ -34,6 +42,9 @@ class BuiltInModel:
         sets = dict(self._base.ENTITY_SETS)
         if not self.multi_datastream:
             sets.pop("multi_datastreams", None)
+        if not self.actuation:
+            for name in _ACTUATION_SETS:
+                sets.pop(name, None)
         return sets
 
     @property
@@ -51,16 +62,17 @@ class BuiltInModel:
         return self._base.TYPES
 
 
-def builtin_model(multi_datastream, data_array):
-    return BuiltInModel(multi_datastream, data_array)
+def builtin_model(multi_datastream, data_array, actuation):
+    return BuiltInModel(multi_datastream, data_array, actuation)
 
 
 def extensions_from_conformance(urls):
-    """Return ``(multi_datastream, data_array)`` for a conformance list."""
+    """Return ``(multi_datastream, data_array, actuation)`` for a conformance list."""
     found = set(urls or ())
     return (
         MULTIDATASTREAM_CONFORMANCE in found,
         DATA_ARRAY_CONFORMANCE in found,
+        ACTUATION_CONFORMANCE in found,
     )
 
 

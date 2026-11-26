@@ -8,11 +8,11 @@ from frost_sta_client.service.sensorthingsservice import SensorThingsService
 from frost_sta_client.service.auth_handler import AuthHandler
 
 
-def _server_ready():
+def _server_ready(url):
     auth_handler = AuthHandler(username="read", password="read")
     try:
         response = requests.get(
-            'http://localhost:8080/FROST-Server/v1.1',
+            url,
             auth=auth_handler.add_auth_header(),
             timeout=3,
         )
@@ -28,29 +28,19 @@ def frost_server():
         yield
         return
     started = False
-    if not _server_ready():
+    full = 'http://localhost:8080/FROST-Server/v1.1'
+    plain = 'http://localhost:8082/FROST-Server/v1.1'
+    if not (_server_ready(full) and _server_ready(plain)):
         # Start FROST-Server using Podman
         subprocess.run(['podman', 'compose', '-f', 'frost_server/docker-compose.yaml', 'up', '-d'])
         started = True
         # Wait for server to start
-        url = 'http://localhost:8080/FROST-Server'
-        for _ in range(30):
-            try:
-                response = requests.get(url)
-                if response.status_code == 200:
-                    break
-            except requests.ConnectionError:
-                time.sleep(1)
+        for _ in range(40):
+            if _server_ready(full) and _server_ready(plain):
+                break
+            time.sleep(1)
         else:
             raise RuntimeError('FROST-Server failed to start')
-        vrl = 'http://localhost:8080/FROST-Server/v1.1'
-        auth_handler = AuthHandler(
-            username="read",
-            password="read"
-        )
-        response = requests.get(vrl, auth=auth_handler.add_auth_header())
-        if response.status_code == 401:
-            raise RuntimeError('Failed to authorize at FROST-Server')
     yield
     if started:
         subprocess.run(['podman', 'compose', '-f', 'frost_server/docker-compose.yaml', 'down'])
@@ -63,4 +53,4 @@ def sensorthings_service(frost_server):
         username="admin",
         password="admin"
     )
-    return SensorThingsService(url, auth_handler=auth_handler)
+    return SensorThingsService(url, (True, True, True), auth_handler=auth_handler)

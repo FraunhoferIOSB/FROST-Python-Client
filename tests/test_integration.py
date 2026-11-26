@@ -112,6 +112,46 @@ def test_crud_observation(sensorthings_service):
         sensorthings_service.observations().find(observation.id)
 
 
+def test_default_model_does_not_match_the_fully_enabled_server(sensorthings_service):
+    auth = sensorthings_service.auth_handler
+    service = fsc.SensorThingsService(
+        "http://localhost:8080/FROST-Server/v1.1",
+        auth_handler=auth,
+    )
+    assert service.extensions == (False, True, False)
+    with pytest.raises(RuntimeError, match="does not match"):
+        service.things().query().list()
+
+
+def test_actuation_model_follows_the_plugin(sensorthings_service):
+    auth = sensorthings_service.auth_handler
+    enabled = fsc.SensorThingsService(
+        "http://localhost:8080/FROST-Server/v1.1",
+        (True, True, True),
+        auth_handler=auth,
+    )
+    assert enabled.things().query().top(1).list() is not None
+    assert callable(enabled.actuators)
+    plain = fsc.SensorThingsService(
+        "http://localhost:8082/FROST-Server/v1.1",
+        (False, True, True),
+        auth_handler=auth,
+    )
+    with pytest.raises(RuntimeError, match="Actuator"):
+        plain.things().query().list()
+
+
+def test_default_model_matches_unchanged_frost_2_8_2(sensorthings_service):
+    service = fsc.SensorThingsService(
+        "http://localhost:8082/FROST-Server/v1.1",
+        auth_handler=sensorthings_service.auth_handler,
+    )
+    assert service.things().query().list() is not None
+    assert getattr(service, "multi_datastreams", None) is None
+    assert getattr(service, "actuators", None) is None
+    assert callable(service.create_observations)
+
+
 def test_default_model_does_not_match_odata_on_frost_2_8_2(sensorthings_service):
     auth = sensorthings_service.auth_handler
     for root in (

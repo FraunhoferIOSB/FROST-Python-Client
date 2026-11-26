@@ -16,15 +16,15 @@ That installs the package, the `requests` and `geojson` dependencies, and the `f
 
 ## Point the client at a service root
 
-`SensorThingsService` takes the service root and an optional model location. Empty means a built-in SensorThings model. The second argument, `extensions`, is `(multi_datastream, data_array)`. It selects which of the four built-in combinations to load. The default is `(True, True)`, so MultiDatastream and the Data Array action `CreateObservations` are both included. `(True, False)`, `(False, True)`, and `(False, False)` are valid too. `extensions` applies only when the model location is empty. Pass a path with `model`, or a module from `load_model`. That model is used as it stands.
+`SensorThingsService` takes the service root and an optional model location. Empty means a built-in SensorThings model. The second argument, `extensions`, is `(multi_datastream, data_array, actuation)`. It selects which of the eight built-in combinations to load. The default is `(False, True, False)`: MultiDatastream off, Data Array on, Actuation off. That is the FROST-Server 2.8.2 image default. Actuation adds Actuator, Task, and TaskingCapability. `extensions` applies only when the model location is empty. Pass a path with `model`, or a module from `load_model`. That model is used as it stands.
 
 ```python
 import frost_sta_client as fsc
 
-service = fsc.SensorThingsService("http://localhost:8080/FROST-Server/v1.1")
-without_data_array = fsc.SensorThingsService(
+service = fsc.SensorThingsService("http://localhost:8082/FROST-Server/v1.1")
+with_all_three = fsc.SensorThingsService(
     "http://localhost:8080/FROST-Server/v1.1",
-    (True, False),
+    (True, True, True),
 )
 from_a_file = fsc.SensorThingsService(
     "http://localhost:8080/FROST-Server/ODATA_4.01",
@@ -41,9 +41,9 @@ Before the first read or write, the client reads that root once and keeps the di
 The loaded model is then compared with the service. It does not matter whether the model was the default or was passed in.
 
 - OData: types, entity sets, and actions are compared with that root's `$metadata`. A mismatch raises `RuntimeError`.
-- SensorThings: `serverSettings.conformance` selects the built-in model that is expected. Data Array is `http://www.opengis.net/spec/iot_sensing/1.1/req/data-array/data-array`. MultiDatastream is `http://www.opengis.net/spec/iot_sensing/1.1/req/multi-datastream`. The loaded model is compared with that built-in model. A mismatch raises `RuntimeError`. `/v1.1` is not asked for `$metadata`.
+- SensorThings: `serverSettings.conformance` selects the built-in model that is expected. Data Array is `http://www.opengis.net/spec/iot_sensing/1.1/req/data-array/data-array`. MultiDatastream is `http://www.opengis.net/spec/iot_sensing/1.1/req/multi-datastream`. Actuation is `http://www.opengis.net/spec/iot_tasking/1.0/req/tasking-capability`. FROST-Server 2.8.2 writes that Actuation URI when `plugins.actuation.enable` is true. The loaded model is compared with that built-in model. A mismatch raises `RuntimeError`. `/v1.1` is not asked for `$metadata`.
 
-On FROST-Server 2.8.2 the OData `$metadata` documents do not contain `CreateObservations`. The default model includes that action, so constructing the client with an OData root and then reading or writing raises. Use `(True, False)` for MultiDatastream without Data Array, or `open` so the model is that root's `$metadata`. `/v1.1` publishes the data-array conformance and has no `$metadata`.
+On FROST-Server 2.8.2 the OData `$metadata` documents do not contain `CreateObservations`. The default model includes that action and omits MultiDatastream and Actuation, so it does not match a root whose `$metadata` has those entity sets. Use `open`, or pass the `extensions` triple that matches that document. `/v1.1` publishes conformance and has no `$metadata`.
 
 The client follows the loaded model. It does not suppress `CreateObservations` because a live document omitted the action. When the loaded model contains the action, the call is sent.
 
@@ -53,27 +53,29 @@ For HTTP basic authentication, pass an `AuthHandler`. Omit it when the server do
 auth = fsc.AuthHandler(username="read", password="read")
 service = fsc.SensorThingsService(
     "http://localhost:8080/FROST-Server/v1.1",
+    (True, True, True),
     auth_handler=auth,
 )
 ```
 
-`frost_server/docker-compose.yaml` starts FROST-Server 2.8.2 with OData enabled:
+`frost_server/docker-compose.yaml` starts two FROST-Server 2.8.2 services. Port 8080 enables MultiDatastream, Data Array, Actuation, and OData. Pass `(True, True, True)` for that root. Port 8082 leaves those three plugins at the image defaults. The client default matches that root:
 
 ```bash
 docker compose -f frost_server/docker-compose.yaml up
 ```
 
-That server publishes three roots:
+The compose file publishes these roots:
 
 | Root | Role |
 | --- | --- |
 | `http://localhost:8080/FROST-Server/v1.1` | SensorThings. This release does not publish `$metadata` here. |
 | `http://localhost:8080/FROST-Server/ODATA_4.0` | The same entities as OData 4.0. `$metadata` is CSDL, and the response header is `OData-Version: 4.0`. |
 | `http://localhost:8080/FROST-Server/ODATA_4.01` | The same entities as OData 4.01. `$metadata` is CSDL, and the response header is `OData-Version: 4.01`. |
+| `http://localhost:8082/FROST-Server/v1.1` | Unchanged FROST-Server 2.8.2. MultiDatastream and Actuation are off. Data Array is on. |
 
 Basic authentication on that server accepts `read` / `read` for reads and `admin` / `admin` for writes.
 
-With the default extensions, these methods are available: `things`, `locations`, `historical_locations`, `datastreams`, `multi_datastreams`, `sensors`, `observed_properties`, `observations`, `features_of_interest`, and `create_observations`. Turning MultiDatastream off removes `multi_datastreams`. Turning Data Array off removes `create_observations`.
+With the default extensions, these methods are available: `things`, `locations`, `historical_locations`, `datastreams`, `sensors`, `observed_properties`, `observations`, `features_of_interest`, and `create_observations`. Turning MultiDatastream on adds `multi_datastreams`. Turning Actuation on adds `actuators`, `tasks`, and `tasking_capabilities`. Turning Data Array off removes `create_observations`.
 
 ## Generate classes from `$metadata`
 
@@ -131,7 +133,7 @@ import frost_sta_client as fsc
 
 auth = fsc.AuthHandler(username="read", password="read")
 service = fsc.SensorThingsService(
-    "http://localhost:8080/FROST-Server/v1.1",
+    "http://localhost:8082/FROST-Server/v1.1",
     auth_handler=auth,
 )
 for thing in service.things().query().orderby("name").top(5).list():
@@ -145,7 +147,7 @@ To create a thing, use an account that can write, then read it back by its key:
 ```python
 auth = fsc.AuthHandler(username="admin", password="admin")
 service = fsc.SensorThingsService(
-    "http://localhost:8080/FROST-Server/v1.1",
+    "http://localhost:8082/FROST-Server/v1.1",
     auth_handler=auth,
 )
 thing = fsc.Thing(name="buoy", description="harbor buoy")

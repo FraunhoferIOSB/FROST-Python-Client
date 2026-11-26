@@ -116,6 +116,67 @@ class UnitOfMeasurement(ComplexType):
     __navigations__ = ()
 
 
+class Actuator(Entity):
+    """Generated entity Actuator."""
+
+    __csdl_name__ = 'Actuator'
+    __namespace__ = 'de.FROST'
+    __entity_set__ = 'Actuators'
+    __key_names__ = ('id',)
+    __key_types__ = {'id': 'Edm.Int64'}
+    __key_name__ = 'id'
+    __key_type__ = 'Edm.Int64'
+    __open_type__ = False
+    __is_entity__ = True
+    __properties__ = (
+        PropertySpec(
+            'id',
+            'id',
+            'Edm.Int64',
+            nullable=False,
+        ),
+        PropertySpec(
+            'name',
+            'name',
+            'Edm.String',
+            nullable=False,
+        ),
+        PropertySpec(
+            'description',
+            'description',
+            'Edm.String',
+            nullable=False,
+        ),
+        PropertySpec(
+            'encodingType',
+            'encoding_type',
+            'Edm.String',
+            nullable=False,
+        ),
+        PropertySpec(
+            'metadata',
+            'metadata',
+            'Edm.Untyped',
+            nullable=False,
+        ),
+        PropertySpec(
+            'properties',
+            'properties',
+            'org.OGC.STA.Object',
+            nullable=True,
+        ),
+    )
+    __navigations__ = (
+        NavigationSpec(
+            'TaskingCapabilities',
+            'tasking_capabilities',
+            'de.FROST.TaskingCapability',
+            collection=True,
+            containment=False,
+        ),
+    )
+
+
 class Datastream(Entity):
     """Generated entity Datastream."""
 
@@ -706,6 +767,118 @@ class Sensor(Entity):
     )
 
 
+class Task(Entity):
+    """Generated entity Task."""
+
+    __csdl_name__ = 'Task'
+    __namespace__ = 'de.FROST'
+    __entity_set__ = 'Tasks'
+    __key_names__ = ('id',)
+    __key_types__ = {'id': 'Edm.Int64'}
+    __key_name__ = 'id'
+    __key_type__ = 'Edm.Int64'
+    __open_type__ = False
+    __is_entity__ = True
+    __properties__ = (
+        PropertySpec(
+            'id',
+            'id',
+            'Edm.Int64',
+            nullable=False,
+        ),
+        PropertySpec(
+            'creationTime',
+            'creation_time',
+            'Edm.DateTimeOffset',
+            nullable=True,
+        ),
+        PropertySpec(
+            'taskingParameters',
+            'tasking_parameters',
+            'org.OGC.STA.Object',
+            nullable=False,
+        ),
+    )
+    __navigations__ = (
+        NavigationSpec(
+            'TaskingCapability',
+            'tasking_capability',
+            'de.FROST.TaskingCapability',
+            collection=False,
+            containment=False,
+        ),
+    )
+
+
+class TaskingCapability(Entity):
+    """Generated entity TaskingCapability."""
+
+    __csdl_name__ = 'TaskingCapability'
+    __namespace__ = 'de.FROST'
+    __entity_set__ = 'TaskingCapabilities'
+    __key_names__ = ('id',)
+    __key_types__ = {'id': 'Edm.Int64'}
+    __key_name__ = 'id'
+    __key_type__ = 'Edm.Int64'
+    __open_type__ = False
+    __is_entity__ = True
+    __properties__ = (
+        PropertySpec(
+            'id',
+            'id',
+            'Edm.Int64',
+            nullable=False,
+        ),
+        PropertySpec(
+            'name',
+            'name',
+            'Edm.String',
+            nullable=False,
+        ),
+        PropertySpec(
+            'description',
+            'description',
+            'Edm.String',
+            nullable=False,
+        ),
+        PropertySpec(
+            'properties',
+            'properties',
+            'org.OGC.STA.Object',
+            nullable=True,
+        ),
+        PropertySpec(
+            'taskingParameters',
+            'tasking_parameters',
+            'org.OGC.STA.Object',
+            nullable=False,
+        ),
+    )
+    __navigations__ = (
+        NavigationSpec(
+            'Actuator',
+            'actuator',
+            'de.FROST.Actuator',
+            collection=False,
+            containment=False,
+        ),
+        NavigationSpec(
+            'Tasks',
+            'tasks',
+            'de.FROST.Task',
+            collection=True,
+            containment=False,
+        ),
+        NavigationSpec(
+            'Thing',
+            'thing',
+            'de.FROST.Thing',
+            collection=False,
+            containment=False,
+        ),
+    )
+
+
 class Thing(Entity):
     """Generated entity Thing."""
 
@@ -767,6 +940,13 @@ class Thing(Entity):
             containment=False,
         ),
         NavigationSpec(
+            'TaskingCapabilities',
+            'tasking_capabilities',
+            'de.FROST.TaskingCapability',
+            collection=True,
+            containment=False,
+        ),
+        NavigationSpec(
             'Datastreams',
             'datastreams',
             'de.FROST.Datastream',
@@ -785,6 +965,8 @@ TYPES = {
     'TM_Period': TM_Period,
     'org.OGC.STA.UnitOfMeasurement': UnitOfMeasurement,
     'UnitOfMeasurement': UnitOfMeasurement,
+    'de.FROST.Actuator': Actuator,
+    'Actuator': Actuator,
     'de.FROST.Datastream': Datastream,
     'Datastream': Datastream,
     'de.FROST.FeatureOfInterest': FeatureOfInterest,
@@ -801,11 +983,16 @@ TYPES = {
     'ObservedProperty': ObservedProperty,
     'de.FROST.Sensor': Sensor,
     'Sensor': Sensor,
+    'de.FROST.Task': Task,
+    'Task': Task,
+    'de.FROST.TaskingCapability': TaskingCapability,
+    'TaskingCapability': TaskingCapability,
     'de.FROST.Thing': Thing,
     'Thing': Thing,
 }
 
 ENTITY_SETS = {
+    'actuators': ('Actuators', Actuator),
     'datastreams': ('Datastreams', Datastream),
     'features_of_interest': ('FeaturesOfInterest', FeatureOfInterest),
     'historical_locations': ('HistoricalLocations', HistoricalLocation),
@@ -814,6 +1001,8 @@ ENTITY_SETS = {
     'observations': ('Observations', Observation),
     'observed_properties': ('ObservedProperties', ObservedProperty),
     'sensors': ('Sensors', Sensor),
+    'tasks': ('Tasks', Task),
+    'tasking_capabilities': ('TaskingCapabilities', TaskingCapability),
     'things': ('Things', Thing),
 }
 

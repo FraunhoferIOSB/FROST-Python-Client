@@ -4,6 +4,9 @@ from enum import Enum
 
 from frost_sta_client.runtime.builtin import BuiltInModel
 
+_ACTUATION_TYPES = frozenset({"Actuator", "Task", "TaskingCapability"})
+_ACTUATION_SETS = frozenset({"Actuators", "Tasks", "TaskingCapabilities"})
+
 
 def assert_same_model(loaded, expected, where):
     """Raise RuntimeError when the two model signatures differ."""
@@ -19,9 +22,15 @@ def signature(model):
             model._base,
             multi_datastream=model.multi_datastream,
             data_array=model.data_array,
+            actuation=model.actuation,
         )
     if hasattr(model, "ENTITY_SETS"):
-        return _module_signature(model, multi_datastream=None, data_array=None)
+        return _module_signature(
+            model,
+            multi_datastream=None,
+            data_array=None,
+            actuation=None,
+        )
     return _csdl_signature(model)
 
 
@@ -35,16 +44,16 @@ def differences(left, right):
     return messages[:8]
 
 
-def _module_signature(module, multi_datastream, data_array):
+def _module_signature(module, multi_datastream, data_array, actuation):
     types = {}
     for cls in _classes(module):
         name = _qualified(cls)
-        if multi_datastream is False and _csdl_name(cls) == "MultiDatastream":
+        if _hidden_type(_csdl_name(cls), multi_datastream, actuation):
             continue
-        types[name] = _class_shape(cls, multi_datastream)
+        types[name] = _class_shape(cls, multi_datastream, actuation)
     sets = []
     for wire, cls in _entity_sets(module):
-        if multi_datastream is False and wire == "MultiDatastreams":
+        if _hidden_set(wire, multi_datastream, actuation):
             continue
         sets.append((wire, _csdl_name(cls)))
     actions = _module_actions(module, data_array)
@@ -113,7 +122,19 @@ def _classes(module):
     return classes
 
 
-def _class_shape(cls, multi_datastream):
+def _hidden_type(name, multi_datastream, actuation):
+    if multi_datastream is False and name == "MultiDatastream":
+        return True
+    return actuation is False and name in _ACTUATION_TYPES
+
+
+def _hidden_set(wire, multi_datastream, actuation):
+    if multi_datastream is False and wire == "MultiDatastreams":
+        return True
+    return actuation is False and wire in _ACTUATION_SETS
+
+
+def _class_shape(cls, multi_datastream, actuation):
     kind = "entity" if getattr(cls, "__is_entity__", False) else "complex"
     keys = tuple(getattr(cls, "__key_names__", ()) or ())
     props = tuple(sorted(
@@ -123,7 +144,7 @@ def _class_shape(cls, multi_datastream):
     navs = []
     for nav in cls.__navigations__:
         target = _short(nav.target)
-        if multi_datastream is False and target == "MultiDatastream":
+        if _hidden_type(target, multi_datastream, actuation):
             continue
         navs.append((nav.wire, target, bool(nav.collection), bool(nav.containment)))
     return (kind, bool(getattr(cls, "__open_type__", False)), keys, props, tuple(sorted(navs)))

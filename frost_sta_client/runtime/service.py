@@ -37,8 +37,8 @@ class SensorThingsService:
 
     ``model`` is a generated model location, or empty for a built-in
     SensorThings model. The second argument, ``extensions``, is
-    ``(multi_datastream, data_array)`` and selects which built-in model that
-    is. Both default to on. A loaded
+    ``(multi_datastream, data_array, actuation)``. The default is
+    ``(False, True, False)``, the FROST-Server 2.8.2 image default. A loaded
     model is followed as it stands: an action it contains can be called.
     Before the first read or write the root is read once. SensorThings is
     compared with the built-in model selected by conformance. OData is
@@ -50,7 +50,7 @@ class SensorThingsService:
         self,
         url,
         model=None,
-        extensions=(True, True),
+        extensions=(False, True, False),
         auth_handler=None,
         proxies=None,
         metadata=None,
@@ -153,7 +153,7 @@ class SensorThingsService:
     def _check_model(self):
         if self._kind == "sta":
             flags = extensions_from_conformance(conformance_urls(self._root_document))
-            expected = builtin_model(flags[0], flags[1])
+            expected = builtin_model(flags[0], flags[1], flags[2])
             assert_same_model(self.model, expected, self.url)
             return
         assert_same_model(self.model, self._odata_metadata(), "{} $metadata".format(self.url))
@@ -281,7 +281,7 @@ class SensorThingsService:
 
 def _resolve_model(model, extensions):
     if model is None or (isinstance(model, str) and not model.strip()):
-        return builtin_model(extensions[0], extensions[1])
+        return builtin_model(extensions[0], extensions[1], extensions[2])
     if isinstance(model, (str, Path)):
         from frost_sta_client.runtime.loader import load_model
 
@@ -292,11 +292,11 @@ def _resolve_model(model, extensions):
 def _extensions(extensions):
     if (
         isinstance(extensions, tuple)
-        and len(extensions) == 2
+        and len(extensions) == 3
         and all(isinstance(item, bool) for item in extensions)
     ):
         return extensions
-    raise ValueError("extensions must be (multi_datastream, data_array)")
+    raise ValueError("extensions must be (multi_datastream, data_array, actuation)")
 
 
 def _bind_name(name, taken):

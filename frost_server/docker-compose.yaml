@@ -3,11 +3,13 @@ services:
     image: docker.io/fraunhoferiosb/frost-server:2.8.2
     environment:
       # For all settings see: https://fraunhoferiosb.github.io/FROST-Server/settings/settings.html
-      # FROST 2.8.2 defaults plugins.multiDatastream.enable to false.
-      # The check turns it on. It is never set to false.
+      # This service enables every data-model extension. Tests pass
+      # (multi_datastream, data_array, actuation) = (True, True, True).
       - serviceRootUrl=http://localhost:8080/FROST-Server
       - plugins_odata.enable=true
       - plugins_multiDatastream.enable=true
+      - plugins_dataArray.enable=true
+      - plugins_actuation.enable=true
       - http_cors_enable=true
       - http_cors_allowed_origins=*
       - persistence_db_driver=org.postgresql.Driver
@@ -28,6 +30,31 @@ services:
       database:
         condition: service_healthy
 
+  web_plain:
+    image: docker.io/fraunhoferiosb/frost-server:2.8.2
+    environment:
+      # Image defaults: MultiDatastream off, Data Array on, Actuation off.
+      # The client default (False, True, False) matches this root.
+      - serviceRootUrl=http://localhost:8082/FROST-Server
+      - http_cors_enable=true
+      - http_cors_allowed_origins=*
+      - persistence_db_driver=org.postgresql.Driver
+      - persistence_db_url=jdbc:postgresql://database:5432/sensorthings_plain
+      - persistence_db_username=sensorthings
+      - persistence_db_password=ChangeMe
+      - persistence_autoUpdateDatabase=true
+      - auth_provider=de.fraunhofer.iosb.ilt.frostserver.auth.basic.BasicAuthProvider
+      - auth_db_driver=org.postgresql.Driver
+      - auth_db_url=jdbc:postgresql://database:5432/sensorthings_plain
+      - auth_db_username=sensorthings
+      - auth_db_password=ChangeMe
+      - auth_autoUpdateDatabase=true
+    ports:
+      - 8082:8080
+    depends_on:
+      database:
+        condition: service_healthy
+
   database:
     image: docker.io/postgis/postgis:16-3.4-alpine
     environment:
@@ -36,6 +63,7 @@ services:
       - POSTGRES_PASSWORD=ChangeMe
     volumes:
       - postgis_volume:/var/lib/postgresql/data
+      - ./initdb/create-plain-database.sql:/docker-entrypoint-initdb.d/create-plain-database.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d sensorthings -U sensorthings "]
       interval: 2s
@@ -44,4 +72,3 @@ services:
 
 volumes:
     postgis_volume:
-
