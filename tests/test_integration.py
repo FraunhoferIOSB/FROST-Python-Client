@@ -112,13 +112,24 @@ def test_crud_observation(sensorthings_service):
         sensorthings_service.observations().find(observation.id)
 
 
-def test_odata_roots_roundtrip_a_linked_location(sensorthings_service):
+def test_default_model_does_not_match_odata_on_frost_2_8_2(sensorthings_service):
     auth = sensorthings_service.auth_handler
     for root in (
         "http://localhost:8080/FROST-Server/ODATA_4.0",
         "http://localhost:8080/FROST-Server/ODATA_4.01",
     ):
         service = fsc.SensorThingsService(root, auth_handler=auth)
+        with pytest.raises(RuntimeError, match="CreateObservations"):
+            service.create(fsc.Thing(name="OData thing", description="default model"))
+
+
+def test_odata_roots_roundtrip_a_linked_location(sensorthings_service, tmp_path):
+    auth = sensorthings_service.auth_handler
+    for root in (
+        "http://localhost:8080/FROST-Server/ODATA_4.0",
+        "http://localhost:8080/FROST-Server/ODATA_4.01",
+    ):
+        service = fsc.SensorThingsService.open(root, tmp_path / root.rstrip("/").split("/")[-1], auth_handler=auth)
         located = fsc.Location(
             name="OData location",
             description="linked",
@@ -135,16 +146,13 @@ def test_odata_roots_roundtrip_a_linked_location(sensorthings_service):
         assert linked.entities[0].id == located.id
 
 
-def test_create_observations_is_refused_when_metadata_omits_it(sensorthings_service):
-    document = fsc.DataArrayDocument()
-    with pytest.raises(RuntimeError, match="CreateObservations"):
-        sensorthings_service.invoke("CreateObservations", document.to_json(sensorthings_service))
-    odata = fsc.SensorThingsService(
-        "http://localhost:8080/FROST-Server/ODATA_4.01",
-        auth_handler=sensorthings_service.auth_handler,
-    )
-    with pytest.raises(RuntimeError, match="CreateObservations"):
-        odata.invoke("CreateObservations", document.to_json(odata))
+def test_v11_calls_create_observations_from_the_loaded_model(sensorthings_service):
+    import requests
+
+    try:
+        sensorthings_service.invoke("CreateObservations", [])
+    except requests.HTTPError:
+        return
 
 
 def test_open_loads_the_model_of_that_root(sensorthings_service, tmp_path):

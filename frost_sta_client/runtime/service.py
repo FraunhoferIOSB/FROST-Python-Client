@@ -1,10 +1,18 @@
 """Service root, HTTP, and the generated entity-set facade."""
 
+from pathlib import Path
+
 import requests
 
+from frost_sta_client.runtime.builtin import (
+    builtin_model,
+    conformance_urls,
+    extensions_from_conformance,
+)
 from frost_sta_client.runtime.control import choose_control
 from frost_sta_client.runtime.csdl import parse_csdl
 from frost_sta_client.runtime.errors import call, response_json
+from frost_sta_client.runtime.modelcheck import assert_same_model
 from frost_sta_client.runtime.names import snake
 from frost_sta_client.runtime.specs import OperationSpec
 from frost_sta_client.service.auth_handler import AuthHandler
@@ -25,15 +33,29 @@ _PROTECTED = {
 
 
 class SensorThingsService:
-    """Client for one service root and one generated model.
+    """Client for one service root and one model.
 
-    ``model`` is a module produced for this service. When it is omitted, the
-    bundled SensorThings model is used so the existing names keep working.
-    ``control`` skips the probe when the vocabulary is already known. Otherwise
-    the first write reads this root's ``$metadata`` and ``OData-Version``.
+    ``model`` is a generated model location, or empty for a built-in
+    SensorThings model. The second argument, ``extensions``, is
+    ``(multi_datastream, data_array)`` and selects which built-in model that
+    is. Both default to on. A loaded
+    model is followed as it stands: an action it contains can be called.
+    Before the first read or write the root is read once. SensorThings is
+    compared with the built-in model selected by conformance. OData is
+    compared with that root's ``$metadata``. ``control`` skips the probe when
+    the vocabulary is already known.
     """
 
-    def __init__(self, url, auth_handler=None, proxies=None, metadata=None, model=None, control=None):
+    def __init__(
+        self,
+        url,
+        model=None,
+        extensions=(True, True),
+        auth_handler=None,
+        proxies=None,
+        metadata=None,
+        control=None,
+    ):
         if not isinstance(url, str) or not url.strip():
             raise ValueError("url must be a non-empty string")
         self.url = url.strip().rstrip("/")
@@ -43,10 +65,19 @@ class SensorThingsService:
         if proxies is not None and not isinstance(proxies, dict):
             raise ValueError("proxies must be a dictionary")
         self.proxies = proxies
-        self.model = model if model is not None else _bundled_model()
+        if isinstance(model, tuple):
+            extensions = model
+            model = None
+        self.extensions = _extensions(extensions)
+        self.model = _resolve_model(model, self.extensions)
+        self._explicit_control = control is not None
         self._control = control
         self._metadata = _coerce_metadata(metadata)
-        self._metadata_response = None
+        self._probed = False
+        self._ready = False
+        self._checking = False
+        self._kind = None
+        self._root_document = None
         self._sets = {}
         self._operations = {}
         self._bind_model(self.model)
@@ -67,7 +98,7 @@ class SensorThingsService:
     @property
     def write_prefix(self):
         if self._control is None:
-            self._control = self._probe_control()
+            self._probe()
         return self._control
 
     def join(self, path):
@@ -75,6 +106,10 @@ class SensorThingsService:
         return "{}/{}".format(self.url.rstrip("/"), str(path).lstrip("/"))
 
     def execute(self, method, url, **kwargs):
+        self.ensure_ready()
+        return self._exchange(method, url, **kwargs)
+
+    def _exchange(self, method, url, **kwargs):
         kwargs.setdefault("timeout", 60)
         auth = None
         if self.auth_handler is not None:
@@ -83,45 +118,63 @@ class SensorThingsService:
         response.raise_for_status()
         return response
 
-    def live_model(self):
-        """Metadata of this root, fetched once unless a document was injected.
+    def ensure_ready(self):
+        """Read the root once, then compare the loaded model, before a request."""
+        if self._ready or self._explicit_control or self._checking:
+            return
+        self._checking = True
+        try:
+            if self._control is None:
+                self._probe()
+            self._check_model()
+            self._ready = True
+        finally:
+            self._checking = False
 
-        A 404 means this root does not publish ``$metadata``. No action is
-        advertised. Other HTTP errors propagate.
-        """
-        if self._metadata is None:
-            self._metadata = _model_from_response(self._metadata_exchange())
+    def _probe(self):
+        """GET the service root once and cache SensorThings versus OData."""
+        if self._probed:
+            return
+        response = self._exchange("get", self.url)
+        version = response.headers.get("OData-Version")
+        text = response.text or ""
+        is_csdl = response.status_code == 200 and text.lstrip().startswith("<")
+        document = None
+        if not is_csdl and response.status_code == 200 and text:
+            try:
+                document = response.json()
+            except ValueError:
+                document = None
+        self._control = choose_control(version, is_csdl, document)
+        self._root_document = document
+        self._kind = "sta" if self._control == "@iot" else "odata"
+        self._probed = True
+
+    def _check_model(self):
+        if self._kind == "sta":
+            flags = extensions_from_conformance(conformance_urls(self._root_document))
+            expected = builtin_model(flags[0], flags[1])
+            assert_same_model(self.model, expected, self.url)
+            return
+        assert_same_model(self.model, self._odata_metadata(), "{} $metadata".format(self.url))
+
+    def _odata_metadata(self):
+        if self._metadata is not None:
+            return self._metadata
+        response = self._exchange("get", self.join("$metadata"))
+        text = response.text or ""
+        if response.status_code != 200 or not text.lstrip().startswith("<"):
+            raise RuntimeError("no $metadata at {}".format(self.url))
+        self._metadata = parse_csdl(text)
         return self._metadata
 
-    def _metadata_exchange(self):
-        if self._metadata_response is None:
-            self._metadata_response = self._get_allowing_status(self.join("$metadata"))
-        return self._metadata_response
+    def live_model(self):
+        """OData metadata of this root, fetched once unless a document was injected.
 
-    def _get_allowing_status(self, url):
-        try:
-            return self.execute("get", url)
-        except requests.HTTPError as exc:
-            response = getattr(exc, "response", None)
-            if response is not None and response.status_code == 404:
-                return response
-            raise
-
-    def _probe_control(self):
-        response = self._metadata_exchange()
-        version = response.headers.get("OData-Version")
-        body = response.text or ""
-        is_csdl = response.status_code == 200 and body.lstrip().startswith("<")
-        document = None
-        if not version and not is_csdl:
-            service_document = self._get_allowing_status(self.url)
-            version = version or service_document.headers.get("OData-Version")
-            if service_document.status_code == 200 and service_document.text:
-                try:
-                    document = service_document.json()
-                except ValueError:
-                    document = None
-        return choose_control(version, is_csdl, document)
+        A SensorThings root has no ``$metadata``. This is not called for that
+        dialect. Other HTTP errors propagate.
+        """
+        return self._odata_metadata()
 
     def __getattr__(self, name):
         if name in self._sets:
@@ -173,8 +226,7 @@ class SensorThingsService:
 
         if entity is None:
             raise TypeError("{} is bound and requires an entity".format(name))
-        if not self.advertises(name):
-            raise RuntimeError("{} is not advertised by this service root".format(name))
+        self._require_operation(name)
         url = "{}/{}".format(entity_url(entity, self), name)
         method_name = "get" if kind == "function" else "post"
         kwargs = {"json": body} if method_name == "post" else {}
@@ -183,14 +235,22 @@ class SensorThingsService:
             return None
         return response_json(response)
 
+    def _operation_named(self, name):
+        for spec, kind in self._operations.values():
+            if spec.name == name:
+                return spec, kind
+        return None
+
+    def _require_operation(self, name):
+        if self._operation_named(name) is None:
+            raise RuntimeError("{} is not in the loaded model".format(name))
+
     def advertises(self, name):
-        """True when this root's metadata lists the action or function."""
-        model = self.live_model()
-        return name in getattr(model, "actions", ()) or name in getattr(model, "functions", ())
+        """True when the loaded model contains the action or function."""
+        return self._operation_named(name) is not None
 
     def invoke(self, name, body=None, *, kind="action"):
-        if not self.advertises(name):
-            raise RuntimeError("{} is not advertised by this service root".format(name))
+        self._require_operation(name)
         method = "get" if kind == "function" else "post"
         kwargs = {"json": body} if method == "post" else {}
         response = call(self, method, self.join(name), "Calling {}".format(name), **kwargs)
@@ -219,26 +279,24 @@ class SensorThingsService:
         return Dao(self, type(entity), entity_set)
 
 
-class _EmptyModel:
-    """A root that published no CSDL document."""
+def _resolve_model(model, extensions):
+    if model is None or (isinstance(model, str) and not model.strip()):
+        return builtin_model(extensions[0], extensions[1])
+    if isinstance(model, (str, Path)):
+        from frost_sta_client.runtime.loader import load_model
 
-    actions = frozenset()
-    functions = frozenset()
-
-
-def _bundled_model():
-    import frost_sta_client.generated.model as bundled
-
-    return bundled
+        return load_model(model)
+    return model
 
 
-def _model_from_response(response):
-    if response.status_code == 404:
-        return _EmptyModel()
-    text = response.text or ""
-    if not text.lstrip().startswith("<"):
-        return _EmptyModel()
-    return parse_csdl(text)
+def _extensions(extensions):
+    if (
+        isinstance(extensions, tuple)
+        and len(extensions) == 2
+        and all(isinstance(item, bool) for item in extensions)
+    ):
+        return extensions
+    raise ValueError("extensions must be (multi_datastream, data_array)")
 
 
 def _bind_name(name, taken):

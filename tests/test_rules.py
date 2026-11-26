@@ -48,12 +48,12 @@ class Response:
 
 
 class RecordingService(SensorThingsService):
-    def __init__(self, url, responses=None, metadata=None, control="@iot"):
-        super().__init__(url, metadata=metadata, control=control)
+    def __init__(self, url, responses=None, metadata=None, control="@iot", extensions=(True, True)):
+        super().__init__(url, extensions=extensions, metadata=metadata, control=control)
         self.responses = list(responses or [])
         self.calls = []
 
-    def execute(self, method, url, **kwargs):
+    def _exchange(self, method, url, **kwargs):
         self.calls.append((method, url, kwargs))
         if self.responses:
             response = self.responses.pop(0)
@@ -458,6 +458,7 @@ def test_odata_and_iot_prefixes():
     thing = fsc.Thing(id=5, name="A", description="B")
     iot_body = thing.to_json(sta)
     assert iot_body["@iot.id"] == 5
+    assert iot_body["@iot.selfLink"].endswith("/Things(5)")
     assert "id" not in iot_body
     assert "@odata.id" not in iot_body
     odata_body = thing.to_json(odata)
@@ -525,29 +526,32 @@ def test_vocabulary_is_probed_from_the_root_not_the_url():
     quiet = RecordingService("http://example.org/ODATA_4.01", control="@iot")
     assert quiet.write_prefix == "@iot"
     assert quiet.calls == []
+    assert choose_control(None, False, {"@odata.context": "http://example.org/$metadata"}) == "@odata"
     versioned = RecordingService(
         V11,
         [Response(text="<edmx:Edmx></edmx:Edmx>", headers={"OData-Version": "4.0"})],
         control=None,
     )
     assert versioned.write_prefix == "@odata"
-    assert versioned.calls[0][1].endswith("/$metadata")
+    assert versioned.calls[0][1] == V11
     newer = RecordingService(
         "http://example.org/service",
-        [Response(text="<edmx:Edmx></edmx:Edmx>", headers={"OData-Version": "4.01"})],
+        [Response(
+            {"@context": "http://example.org/$metadata", "value": []},
+            headers={"OData-Version": "4.01"},
+        )],
         control=None,
     )
     assert newer.write_prefix == "@"
+    assert newer.calls[0][1] == "http://example.org/service"
     sta_root = RecordingService(
         "http://example.org/ODATA_4.01",
-        [
-            Response(text="path invalid", status_code=404),
-            Response({"value": [{"name": "Things", "url": "http://example.org/Things"}]}),
-        ],
+        [Response({"value": [{"name": "Things", "url": "http://example.org/Things"}]})],
         control=None,
     )
     assert sta_root.write_prefix == "@iot"
-    assert sta_root.calls[1][1] == "http://example.org/ODATA_4.01"
+    assert sta_root.calls[0][1] == "http://example.org/ODATA_4.01"
+    assert len(sta_root.calls) == 1
 
 
 def test_query_defaults_and_requests():
@@ -662,7 +666,7 @@ def test_data_array_facade():
     document = fsc.DataArrayDocument()
     with pytest.raises(TypeError, match="not an entity"):
         sta.create(document)
-    silent = service(metadata=SimpleNamespace(actions=set(), functions=set()))
+    silent = service(extensions=(True, False))
     with pytest.raises(RuntimeError, match="CreateObservations"):
         silent.invoke("CreateObservations", document.to_json(silent))
     ordered.datastream = None

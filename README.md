@@ -16,13 +16,36 @@ That installs the package, the `requests` and `geojson` dependencies, and the `f
 
 ## Point the client at a service root
 
-Pass the service root to `SensorThingsService`. This uses the SensorThings model included in the package:
+`SensorThingsService` takes the service root and an optional model location. Empty means a built-in SensorThings model. The second argument, `extensions`, is `(multi_datastream, data_array)`. It selects which of the four built-in combinations to load. The default is `(True, True)`, so MultiDatastream and the Data Array action `CreateObservations` are both included. `(True, False)`, `(False, True)`, and `(False, False)` are valid too. `extensions` applies only when the model location is empty. Pass a path with `model`, or a module from `load_model`. That model is used as it stands.
 
 ```python
 import frost_sta_client as fsc
 
 service = fsc.SensorThingsService("http://localhost:8080/FROST-Server/v1.1")
+without_data_array = fsc.SensorThingsService(
+    "http://localhost:8080/FROST-Server/v1.1",
+    (True, False),
+)
+from_a_file = fsc.SensorThingsService(
+    "http://localhost:8080/FROST-Server/ODATA_4.01",
+    model="my_model",
+)
 ```
+
+Before the first read or write, the client reads that root once and keeps the dialect:
+
+- A SensorThings service document, a list of `{name, url}` and no CSDL, writes `@iot.id` and `@iot.selfLink`. A reference uses the primary key.
+- `OData-Version: 4.01` writes `@id`. A navigation link is read from `Nav@navigationLink`. A reference uses the entity URL.
+- Any other OData response writes `@odata.*`. A reference uses the entity URL.
+
+The loaded model is then compared with the service. It does not matter whether the model was the default or was passed in.
+
+- OData: types, entity sets, and actions are compared with that root's `$metadata`. A mismatch raises `RuntimeError`.
+- SensorThings: `serverSettings.conformance` selects the built-in model that is expected. Data Array is `http://www.opengis.net/spec/iot_sensing/1.1/req/data-array/data-array`. MultiDatastream is `http://www.opengis.net/spec/iot_sensing/1.1/req/multi-datastream`. The loaded model is compared with that built-in model. A mismatch raises `RuntimeError`. `/v1.1` is not asked for `$metadata`.
+
+On FROST-Server 2.8.2 the OData `$metadata` documents do not contain `CreateObservations`. The default model includes that action, so constructing the client with an OData root and then reading or writing raises. Use `(True, False)` for MultiDatastream without Data Array, or `open` so the model is that root's `$metadata`. `/v1.1` publishes the data-array conformance and has no `$metadata`.
+
+The client follows the loaded model. It does not suppress `CreateObservations` because a live document omitted the action. When the loaded model contains the action, the call is sent.
 
 For HTTP basic authentication, pass an `AuthHandler`. Omit it when the server does not require authentication.
 
@@ -50,7 +73,7 @@ That server publishes three roots:
 
 Basic authentication on that server accepts `read` / `read` for reads and `admin` / `admin` for writes.
 
-`SensorThingsService(url)` with no `model` uses the included SensorThings model. These methods are available: `things`, `locations`, `historical_locations`, `datastreams`, `multi_datastreams`, `sensors`, `observed_properties`, `observations`, and `features_of_interest`.
+With the default extensions, these methods are available: `things`, `locations`, `historical_locations`, `datastreams`, `multi_datastreams`, `sensors`, `observed_properties`, `observations`, `features_of_interest`, and `create_observations`. Turning MultiDatastream off removes `multi_datastreams`. Turning Data Array off removes `create_observations`.
 
 ## Generate classes from `$metadata`
 
@@ -144,17 +167,17 @@ service.create(thing)
 print(service.things().find(thing.id).name)
 ```
 
-`service.invoke(name, body)` calls an action. The request is sent when that root's `$metadata` lists the action. When the action is absent, `invoke` raises `RuntimeError`.
+`service.invoke(name, body)` calls an action that the loaded model contains. The client does not refuse the call because a live document omitted the action. When the loaded model has no such action, `invoke` raises `RuntimeError` before any request. A model that does not match the service also raises before the call.
 
 ## Which control fields are written
 
-The first write loads `$metadata` for the service root you passed and reads the `OData-Version` header. That response selects the control fields:
+The root read above selects the control fields. They stay cached for later calls.
 
-- `4.01` writes `@id` for an entity URL. A navigation link is the navigation name plus `@navigationLink`, for example `Locations@navigationLink`.
-- Any other OData version writes `@odata.id` and the other `@odata.*` fields.
-- A SensorThings root with no OData `$metadata` writes `@iot.id`.
+- `OData-Version: 4.01` writes `@id` for an entity URL. A navigation link is the navigation name plus `@navigationLink`, for example `Locations@navigationLink`.
+- Any other OData response writes `@odata.id` and the other `@odata.*` fields.
+- A SensorThings service document writes `@iot.id` and `@iot.selfLink`.
 
-`@id` and `@odata.id` carry the entity URL. `@iot.id` carries the key. When a response has no `@iot.id`, the key is the key property declared for that type in `$metadata`.
+`@id` and `@odata.id` carry the entity URL, and so does a reference. `@iot.id` carries the key, and a reference uses that key. `@iot.selfLink` carries the entity URL. When a response has no `@iot.id`, the key is the key property declared for that type.
 
 ## OData types in Python (2.0.0)
 
@@ -190,7 +213,7 @@ This release is 2.0.0. The table shows where 1.1.53 differs, with 1.1.53 in one 
 | --- | --- | --- |
 | `''` and `{}` | Left out of the JSON | Written |
 | Equality | A missing key matches a present key. Each class compares only some of its fields. | Every structural field is compared, including when both keys match. A key on only one side makes the two unequal. |
-| CreateObservations | `observations().create` posts a data array to CreateObservations | `service.invoke("CreateObservations", body)` runs only when that root's `$metadata` advertises the action |
+| CreateObservations | `observations().create` posts a data array to CreateObservations | `service.invoke("CreateObservations", body)` sends the call when the loaded model contains the action. The client does not suppress it at runtime. A model that does not match the service raises before the call. |
 | Classes | Handwritten classes are imported from the package | Classes are generated from `$metadata` before the program runs, with the generate command or `SensorThingsService.open`. The included SensorThings model is already generated. |
 | Edm.Int16, Edm.Int32, Edm.Int64 | `Entity.id` is int or str. There is no general integer mapping. | int |
 | Edm.Boolean | No mapping | bool |

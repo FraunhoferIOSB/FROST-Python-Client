@@ -6,6 +6,7 @@ JSON, and attribute access live here, once.
 
 from frost_sta_client.runtime.control import (
     coerce_key,
+    entity_url,
     identity_field,
     key_reference,
 )
@@ -380,6 +381,7 @@ class Entity:
             value = self._key_parts.get(names[0])
             if prefix == "@iot":
                 data["@iot.id"] = value
+                _write_iot_self_link(self, data, service)
             else:
                 data[names[0]] = value
                 if service is not None:
@@ -390,7 +392,9 @@ class Entity:
             if value is not None:
                 data[name] = value
         complete = all(self._key_parts.get(name) is not None for name in names)
-        if prefix != "@iot" and service is not None and complete:
+        if prefix == "@iot":
+            _write_iot_self_link(self, data, service)
+        elif service is not None and complete:
             data[identity_field(prefix)] = _odata_identity(self, service)
 
     def _write_navigation(self, nav, service, ancestors):
@@ -605,6 +609,19 @@ def _has_content(entity):
 
 def is_empty_collection(spec, value):
     return spec.edm.startswith("Collection(") and len(value) == 0
+
+
+def _write_iot_self_link(entity, data, service):
+    """SensorThings writes the entity URL in ``@iot.selfLink`` next to the key."""
+    if entity.self_link:
+        data["@iot.selfLink"] = entity.self_link
+        return
+    if service is None:
+        return
+    try:
+        data["@iot.selfLink"] = entity_url(entity, service)
+    except ValueError:
+        return
 
 
 def _odata_identity(entity, service):

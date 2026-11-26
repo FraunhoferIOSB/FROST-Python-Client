@@ -1,7 +1,7 @@
 """Control vocabulary, key formatting, and entity URLs.
 
 The caller chooses the service root. The vocabulary comes from that root's
-``$metadata`` and ``OData-Version`` header, not from the shape of the URL.
+response and its ``OData-Version`` header, not from the shape of the URL.
 """
 
 from urllib.parse import urlsplit
@@ -12,12 +12,12 @@ def choose_control(odata_version, metadata_is_csdl, service_document=None):
 
     ``OData-Version: 4.01`` writes ``@id`` and ``Nav@navigationLink``.
     Any other OData response writes ``@odata.*``. ``@iot.*`` is only a
-    SensorThings root that does not publish an OData document.
+    SensorThings service document, a list of ``{name, url}`` and no CSDL.
     """
     version = _canonical_version(odata_version)
     if version == "4.01":
         return "@"
-    if version is not None or metadata_is_csdl:
+    if version is not None or metadata_is_csdl or _is_odata_document(service_document):
         return "@odata"
     if _is_sensorthings_document(service_document):
         return "@iot"
@@ -168,6 +168,13 @@ def _canonical_version(value):
     if text.startswith("4.01"):
         return "4.01"
     return text
+
+
+def _is_odata_document(document):
+    """An OData service document names its context. It is not a SensorThings index."""
+    if not isinstance(document, dict):
+        return False
+    return "@odata.context" in document or "@context" in document
 
 
 def _is_sensorthings_document(document):
